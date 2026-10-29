@@ -86,7 +86,7 @@ if access_token:
                         signal = "SELL (Open=High)"
                 
                 records.append({
-                    "Symbol": val.get("symbol", key),
+     "Symbol": key.split("|")[-1] if "|" in key else key,               
                     "LTP": ltp,
                     "Change": net_change,
                     "Open": open_price,
