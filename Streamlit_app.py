@@ -2,6 +2,7 @@ import os
 import re
 import gzip
 import json
+import time
 import requests
 import pandas as pd
 from datetime import date
@@ -30,7 +31,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================================
-# CONSTANTS & UPSTOX AUTH
+# CONSTANTS & SAFE UPSTOX AUTH (RENDER COMPATIBLE)
 # =========================================================
 OPTION_CHAIN_URL = "https://api.upstox.com/v2/option/chain"
 INSTRUMENT_URLS = [
@@ -39,7 +40,29 @@ INSTRUMENT_URLS = [
 ]
 TODAY = date.today()
 
-access_token = str(st.secrets.get("UPSTOX_ACCESS_TOKEN", "")).strip()
+# ૧. Render Environment Variables ચેક કરશે
+access_token = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
+
+# ૨. જો ન મળે તો સેફ રીતે Secrets ચેક કરશે (એરર વગર)
+if not access_token:
+    try:
+        access_token = str(st.secrets.get("UPSTOX_ACCESS_TOKEN", "")).strip()
+    except Exception:
+        access_token = ""
+
+# ૩. જો બંનેમાં ન હોય તો ઇનપુટ બોક્સ આપશે
+if not access_token:
+    if "upstox_access_token" not in st.session_state:
+        st.session_state.upstox_access_token = ""
+    token_input = st.text_input(
+        "Upstox Access Token",
+        type="password",
+        placeholder="Paste Upstox access token here",
+        key="token_input_box"
+    )
+    if token_input.strip():
+        st.session_state.upstox_access_token = token_input.strip()
+    access_token = st.session_state.get("upstox_access_token", "")
 
 # =========================================================
 # SESSION STATE INITIALIZATION
@@ -221,7 +244,7 @@ def scan_stock_pg(item, exp_val, opt_type, delta_low, delta_high, gap_pct, b_qty
         r1_txt = f"{r1_buy_strike:g} / {r1_sell_strike:g}" if (r1_b and r1_s) else "- / -"
         r1_pp = f"{r1_b['ltp']:.2f} / {r1_s['ltp']:.2f}" if (r1_b and r1_s) else "- / -"
 
-        # 5. R2 Spread (Previous-to-previous sequence)
+        # 5. R2 Spread (Sequence)
         r2_buy_strike = (r1_buy_strike - actual_gap) if opt_type == "CE" else (r1_buy_strike + actual_gap)
         r2_sell_strike = r1_buy_strike
 
@@ -307,32 +330,35 @@ with m_col3:
 should_scan = man_scan_btn or st.session_state.auto_scan_active
 
 if should_scan:
-    ratio_map = {"1:3": (1, 3), "3:10": (3, 10), "1:4": (1, 4), "2:7": (2, 7)}
-    b_qty, s_qty = ratio_map[ratio_in]
-    d_low, d_high = parse_delta_range(delta_in)
-    deb_range = parse_amount_range(deb_in)
-    cred_range = parse_amount_range(cred_in)
-    min_pft = float(res_profit_in) if res_profit_in else 0.0
+    if not access_token:
+        st.error("Please provide a valid Upstox Access Token.")
+    else:
+        ratio_map = {"1:3": (1, 3), "3:10": (3, 10), "1:4": (1, 4), "2:7": (2, 7)}
+        b_qty, s_qty = ratio_map[ratio_in]
+        d_low, d_high = parse_delta_range(delta_in)
+        deb_range = parse_amount_range(deb_in)
+        cred_range = parse_amount_range(cred_in)
+        min_pft = float(res_profit_in) if res_profit_in else 0.0
 
-    scan_universe = universe[universe["expiry"] == exp_in].drop_duplicates(subset=["underlying_key"]).reset_index(drop=True)
-    raw_results = []
+        scan_universe = universe[universe["expiry"] == exp_in].drop_duplicates(subset=["underlying_key"]).reset_index(drop=True)
+        raw_results = []
 
-    with ThreadPoolExecutor(max_workers=6) as executor:
-        futures = {
-            executor.submit(
-                scan_stock_pg, row, exp_in, opt_in, d_low, d_high,
-                gap_pct_val, b_qty, s_qty, deb_range, cred_range, min_pft
-            ): row["symbol"]
-            for _, row in scan_universe.iterrows()
-        }
-        for future in as_completed(futures):
-            res = future.result()
-            if res:
-                raw_results.append(res)
+        with ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {
+                executor.submit(
+                    scan_stock_pg, row, exp_in, opt_in, d_low, d_high,
+                    gap_pct_val, b_qty, s_qty, deb_range, cred_range, min_pft
+                ): row["symbol"]
+                for _, row in scan_universe.iterrows()
+            }
+            for future in as_completed(futures):
+                res = future.result()
+                if res:
+                    raw_results.append(res)
 
-    # Sort: highest profit/credit first
-    raw_results.sort(key=lambda x: x["sort_score"], reverse=True)
-    st.session_state.scan_results = raw_results
+        # Sort: Highest Profit/Credit First
+        raw_results.sort(key=lambda x: x["sort_score"], reverse=True)
+        st.session_state.scan_results = raw_results
 
 # =========================================================
 # 8-COLUMN MOBILE-OPTIMIZED RESULT TABLE
@@ -448,6 +474,5 @@ components.html(full_html, height=450, scrolling=False)
 
 # Auto Refresh loop if Auto is ON
 if st.session_state.auto_scan_active:
-    import time
     time.sleep(15)
     st.rerun()
