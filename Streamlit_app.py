@@ -8,13 +8,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Safe secrets / environment token handling
+# Safe token access
 try:
     secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
 except Exception:
     secret_token = os.environ.get("UPSTOX_ACCESS_TOKEN", "")
 
-# Streamlit native padding zero
+# Streamlit native reset
 st.markdown("""
 <style>
     .block-container {
@@ -40,7 +40,7 @@ mobile_ui_html = """
     .header-bar {
         display: flex;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
         margin-bottom: 8px;
     }
     .brand-title {
@@ -71,88 +71,112 @@ mobile_ui_html = """
     /* Filters Grid (Row 1) */
     .filter-grid {
         display: grid;
-        grid-template-columns: 1.1fr 0.85fr 1fr 1.15fr 0.9fr;
+        grid-template-columns: 1fr 0.9fr 1fr 1.1fr 0.9fr;
         gap: 5px;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
     .field-wrap { display: flex; flex-direction: column; }
     .field-title { font-size: 0.72rem; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
     .custom-select, .custom-input {
         width: 100%;
-        height: 28px;
+        height: 30px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
         padding: 0 4px;
-        font-size: 0.72rem;
+        font-size: 0.75rem;
         background-color: #f8fafc;
         outline: none;
+    }
+    .custom-input {
+        background-color: #ffffff;
+        text-align: center;
+        font-weight: 500;
     }
     .result-sub { font-size: 0.65rem; color: #64748b; text-align: center; margin-top: 1px; }
 
     /* Spread Cost (Row 2) */
-    .cost-title { font-size: 0.72rem; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
+    .cost-title { font-size: 0.74rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
     .spread-row {
         display: flex;
-        gap: 10px;
-        margin-bottom: 8px;
+        gap: 8px;
+        margin-bottom: 10px;
     }
-    .cost-pill {
+    .cost-box {
+        flex: 1;
         display: flex;
         align-items: center;
         border: 1px solid #cbd5e1;
-        border-radius: 4px;
-        height: 26px;
+        border-radius: 6px;
+        height: 32px;
         overflow: hidden;
+        background: #ffffff;
     }
-    .pill-debit {
+    .badge-debit {
         background-color: #0284c7;
         color: white;
         font-weight: 700;
-        font-size: 0.72rem;
-        padding: 0 8px;
+        font-size: 0.75rem;
+        padding: 0 10px;
         height: 100%;
         display: flex;
         align-items: center;
     }
-    .pill-credit {
+    .badge-credit {
         background-color: #ef4444;
         color: white;
         font-weight: 700;
-        font-size: 0.72rem;
-        padding: 0 8px;
+        font-size: 0.75rem;
+        padding: 0 10px;
         height: 100%;
         display: flex;
         align-items: center;
     }
-    .cost-input {
+    .cost-input-field {
         border: none;
         outline: none;
-        font-size: 0.72rem;
-        padding: 0 6px;
-        width: 72px;
+        font-size: 0.76rem;
+        padding: 0 8px;
+        width: 100%;
         background: transparent;
     }
 
-    /* 3 Scanner Modules */
+    /* 3 Scanner Modules (Horizontal Layout) */
+    .modules-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
     .module-card {
-        border-radius: 5px;
-        padding: 6px 8px;
-        margin-bottom: 6px;
+        border-radius: 6px;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     .mod-debit { background-color: #f0fdf4; border: 1px solid #bbf7d0; }
     .mod-gap { background-color: #fff1f2; border: 1px solid #fecdd3; }
     .mod-spike { background-color: #fefce8; border: 1px solid #fef08a; }
 
-    .module-heading { font-size: 0.78rem; font-weight: 700; color: #0f172a; margin-bottom: 5px; }
-    .btn-row { display: flex; align-items: center; gap: 4px; }
+    .module-heading {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 6px;
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .btn-row { display: flex; align-items: center; gap: 3px; }
     
     .btn-opt {
         flex: 1;
-        height: 26px;
+        height: 24px;
         border: 1px solid #cbd5e1;
         background: #ffffff;
         border-radius: 4px;
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: 600;
         color: #0f172a;
         display: flex;
@@ -166,29 +190,30 @@ mobile_ui_html = """
         color: #ffffff;
     }
     .num-box {
-        width: 32px;
-        height: 26px;
+        width: 28px;
+        height: 24px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
         text-align: center;
-        font-size: 0.72rem;
+        font-size: 0.70rem;
         background: #ffffff;
         outline: none;
+        padding: 0;
     }
-    .unit-symbol { font-size: 0.72rem; font-weight: bold; margin-right: 2px; }
+    .unit-symbol { font-size: 0.68rem; font-weight: bold; }
 
     /* Results Header Bar */
     .results-head {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: 8px 0 6px 0;
+        margin: 6px 0 6px 0;
     }
     .results-left {
         display: flex;
         align-items: center;
         gap: 4px;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-weight: 700;
     }
     .results-right {
@@ -196,13 +221,13 @@ mobile_ui_html = """
         align-items: center;
         gap: 6px;
     }
-    .total-counter { font-size: 0.72rem; color: #334155; }
+    .total-counter { font-size: 0.70rem; color: #334155; }
     .table-search {
         height: 24px;
-        width: 90px;
+        width: 85px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
-        font-size: 0.70rem;
+        font-size: 0.68rem;
         padding: 0 4px;
         outline: none;
     }
@@ -219,7 +244,7 @@ mobile_ui_html = """
         border-collapse: collapse;
         font-size: 0.70rem;
         white-space: nowrap;
-        min-width: 860px;
+        min-width: 780px;
     }
     .excel-grid th {
         border: 1px solid #cbd5e1;
@@ -228,8 +253,8 @@ mobile_ui_html = """
     }
     .excel-grid td {
         border: 1px solid #e2e8f0;
-        height: 22px;
-        padding: 2px 4px;
+        height: 26px;
+        padding: 2px 6px;
         text-align: center;
     }
     .col-letter th {
@@ -249,6 +274,12 @@ mobile_ui_html = """
         color: #64748b;
         width: 26px;
     }
+    .comp-cell {
+        text-align: left !important;
+        line-height: 1.15;
+    }
+    .comp-name { font-weight: 700; color: #0f172a; }
+    .comp-date { font-size: 0.64rem; color: #0284c7; font-weight: 600; display: block; }
 </style>
 </head>
 <body>
@@ -266,25 +297,42 @@ mobile_ui_html = """
 
     <!-- Filters Row 1 -->
     <div class="filter-grid">
+        <!-- Delta Input Box -->
         <div class="field-wrap">
             <span class="field-title">Delta</span>
-            <select class="custom-select"><option>0.20 - 0.25</option><option>0.15 - 0.20</option></select>
+            <input type="number" step="0.01" min="0.05" max="0.90" class="custom-input" value="0.20" inputmode="decimal">
         </div>
+        <!-- Ratio Dropdown with Custom Specified Options -->
         <div class="field-wrap">
             <span class="field-title">Ratio</span>
-            <select class="custom-select"><option>1 : 3</option><option>1 : 2</option></select>
+            <select class="custom-select">
+                <option value="1:3">1:3</option>
+                <option value="3:10">3:10</option>
+                <option value="1:4">1:4</option>
+                <option value="2:7">2:7</option>
+            </select>
         </div>
+        <!-- Option Type Dropdown -->
         <div class="field-wrap">
             <span class="field-title">Option Type</span>
-            <select class="custom-select"><option>CE (Call)</option><option>PE (Put)</option></select>
+            <select class="custom-select">
+                <option value="CE">CE (Call)</option>
+                <option value="PE">PE (Put)</option>
+            </select>
         </div>
+        <!-- Expiry Dropdown -->
         <div class="field-wrap">
             <span class="field-title">Expiry</span>
-            <select class="custom-select"><option>26 Sep 2026</option><option>06 Oct 2026</option></select>
+            <select class="custom-select">
+                <option>26 Sep 2026</option>
+                <option>06 Oct 2026</option>
+                <option>29 Oct 2026</option>
+            </select>
         </div>
+        <!-- Result Input Box -->
         <div class="field-wrap">
             <span class="field-title">Result</span>
-            <input type="text" class="custom-input" value="0" style="text-align:center;">
+            <input type="text" class="custom-input" value="0" inputmode="numeric">
             <span class="result-sub">Figures</span>
         </div>
     </div>
@@ -292,47 +340,48 @@ mobile_ui_html = """
     <!-- Spread Cost Row 2 -->
     <div class="cost-title">Spread Cost (₹)</div>
     <div class="spread-row">
-        <div class="cost-pill">
-            <div class="pill-debit">Debit</div>
-            <input type="text" class="cost-input" value="0 - 5000">
+        <div class="cost-box">
+            <div class="badge-debit">Debit</div>
+            <input type="text" class="cost-input-field" value="0 - 5000" inputmode="numeric" placeholder="Enter debit...">
         </div>
-        <div class="cost-pill">
-            <div class="pill-credit">Credit</div>
-            <input type="text" class="cost-input" value="0 - 5000">
-        </div>
-    </div>
-
-    <!-- 1. Debit ₹0 Scanner -->
-    <div class="module-card mod-debit">
-        <div class="module-heading">1. Debit ₹0 Scanner</div>
-        <div class="btn-row">
-            <button class="btn-opt">Auto</button>
-            <button class="btn-opt">Manual</button>
-            <button class="btn-opt btn-scan">Scan</button>
+        <div class="cost-box">
+            <div class="badge-credit">Credit</div>
+            <input type="text" class="cost-input-field" value="0 - 5000" inputmode="numeric" placeholder="Enter credit...">
         </div>
     </div>
 
-    <!-- 2. % Gap Scanner -->
-    <div class="module-card mod-gap">
-        <div class="module-heading">2. % Gap Scanner</div>
-        <div class="btn-row">
-            <input type="text" class="num-box" value="20">
-            <span class="unit-symbol">%</span>
-            <button class="btn-opt">Auto</button>
-            <button class="btn-opt">Manual</button>
-            <button class="btn-opt btn-scan">Scan</button>
+    <!-- 3 Scanner Modules Side-by-Side -->
+    <div class="modules-container">
+        <!-- 1. Debit Module -->
+        <div class="module-card mod-debit">
+            <div class="module-heading">1. Debit ₹0</div>
+            <div class="btn-row">
+                <button class="btn-opt">Auto</button>
+                <button class="btn-opt">Man</button>
+                <button class="btn-opt btn-scan">Scan</button>
+            </div>
         </div>
-    </div>
 
-    <!-- 3. Option Premium Spike (UP / DOWN) -->
-    <div class="module-card mod-spike">
-        <div class="module-heading">3. Option Premium Spike (UP / DOWN)</div>
-        <div class="btn-row">
-            <input type="text" class="num-box" value="10">
-            <span class="unit-symbol">%</span>
-            <button class="btn-opt">Auto</button>
-            <button class="btn-opt">Manual</button>
-            <button class="btn-opt btn-scan">Scan</button>
+        <!-- 2. % Gap Module with Numeric Input -->
+        <div class="module-card mod-gap">
+            <div class="module-heading">2. % Gap</div>
+            <div class="btn-row">
+                <input type="number" class="num-box" value="20" inputmode="numeric">
+                <span class="unit-symbol">%</span>
+                <button class="btn-opt">Auto</button>
+                <button class="btn-opt btn-scan">Scan</button>
+            </div>
+        </div>
+
+        <!-- 3. Spike Module with Numeric Input -->
+        <div class="module-card mod-spike">
+            <div class="module-heading">3. Spike UP/DN</div>
+            <div class="btn-row">
+                <input type="number" class="num-box" value="10" inputmode="numeric">
+                <span class="unit-symbol">%</span>
+                <button class="btn-opt">Auto</button>
+                <button class="btn-opt btn-scan">Scan</button>
+            </div>
         </div>
     </div>
 
@@ -340,23 +389,23 @@ mobile_ui_html = """
     <div class="results-head">
         <div class="results-left">🎯 Scan Results (Live)</div>
         <div class="results-right">
-            <span class="total-counter">Total Results: <b>24</b></span>
+            <span class="total-counter">Total: <b>24</b></span>
             <input type="text" class="table-search" placeholder="🔍 Search...">
         </div>
     </div>
 
-    <!-- Excel Table -->
+    <!-- Excel Table (Company includes Result Date) -->
     <div class="excel-scroll">
         <table class="excel-grid">
             <thead>
                 <tr class="col-letter">
                     <th class="row-index"></th>
-                    <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th>
+                    <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th>
                 </tr>
                 <tr class="col-title">
                     <th class="row-index">#</th>
                     <th>#</th>
-                    <th>Company - delta value</th>
+                    <th>Company (Result Date)</th>
                     <th>strike buy/sale</th>
                     <th>price/ price</th>
                     <th>R1 buystrike / sale</th>
@@ -365,18 +414,32 @@ mobile_ui_html = """
                     <th>R2 buystrike / sale</th>
                     <th>R2 (price/ price)</th>
                     <th>R2 (profit)</th>
-                    <th>Resu date</th>
                 </tr>
             </thead>
             <tbody>
 """
 
-# Generate 14 Excel rows
+sample_stocks = [
+    ("RELIANCE", "Δ 0.22", "06 Oct 2026"),
+    ("TCS", "Δ 0.21", "06 Oct 2026"),
+    ("INFY", "Δ 0.23", "08 Oct 2026"),
+    ("HDFCBANK", "Δ 0.24", "12 Oct 2026"),
+    ("ICICIBANK", "Δ 0.21", "14 Oct 2026"),
+]
+
 for i in range(1, 15):
+    if i <= len(sample_stocks):
+        comp, delta, rdate = sample_stocks[i - 1]
+        comp_display = f"<div class='comp-name'>{comp} <small style='color:#64748b;'>({delta})</small></div><span class='comp-date'>📅 {rdate}</span>"
+    else:
+        comp_display = ""
+
     mobile_ui_html += f"""
                 <tr>
                     <td class="row-index">{i}</td>
-                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    <td>{i if comp_display else ""}</td>
+                    <td class="comp-cell">{comp_display}</td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 </tr>
     """
 
@@ -389,4 +452,4 @@ mobile_ui_html += """
 </html>
 """
 
-components.html(mobile_ui_html, height=760, scrolling=False)
+components.html(mobile_ui_html, height=750, scrolling=False)
