@@ -1,347 +1,392 @@
 import os
-import time
-import datetime
 import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Project A Pro - Options Ratio Spread Scanner",
+    page_title="Project A Pro",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Safe secrets handling
+# Safe secrets / environment token handling
 try:
     secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
 except Exception:
     secret_token = os.environ.get("UPSTOX_ACCESS_TOKEN", "")
 
-if "auto_scan" not in st.session_state:
-    st.session_state.auto_scan = False
-
-# Global Container Styling
+# Streamlit native padding zero
 st.markdown("""
 <style>
     .block-container {
-        padding: 0.5rem 0.5rem 2rem 0.5rem !important;
+        padding: 0px !important;
+        margin: 0px !important;
         max-width: 100% !important;
     }
-    #MainMenu, header, footer { visibility: hidden; }
+    #MainMenu, header, footer { display: none !important; visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- EMBEDDED COMPLETE UI (DESKTOP + MOBILE LOCK) -----------------
-app_html = """
+mobile_ui_html = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { margin: 0; padding: 4px; background-color: #ffffff; color: #0f172a; }
-    
-    .scroll-wrapper {
-        min-width: 820px;
-        padding-bottom: 20px;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #ffffff; color: #0f172a; padding: 8px 10px; overflow-x: hidden; }
 
-    /* Top Bar */
-    .top-bar {
+    /* Top Brand Bar */
+    .header-bar {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 8px;
     }
-    .brand-title { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0; }
-    .brand-sub { font-size: 0.8rem; color: #64748b; margin: 0; }
-    .status-badge { font-size: 0.8rem; color: #334155; display: flex; align-items: center; gap: 6px; }
+    .brand-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .brand-sub { font-size: 0.72rem; color: #64748b; margin-top: 1px; }
+    .status-text {
+        font-size: 0.70rem;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #22c55e;
+        border-radius: 50%;
+        display: inline-block;
+    }
 
-    /* Filter Controls Row 1 */
+    /* Filters Grid (Row 1) */
     .filter-grid {
         display: grid;
-        grid-template-columns: 1fr 0.9fr 1fr 1.1fr 0.9fr;
-        gap: 8px;
+        grid-template-columns: 1.1fr 0.85fr 1fr 1.15fr 0.9fr;
+        gap: 5px;
         margin-bottom: 6px;
     }
-    .field-box { display: flex; flex-direction: column; }
-    .field-label { font-size: 0.76rem; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
-    .styled-select, .styled-input {
-        height: 32px;
+    .field-wrap { display: flex; flex-direction: column; }
+    .field-title { font-size: 0.72rem; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
+    .custom-select, .custom-input {
+        width: 100%;
+        height: 28px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
-        padding: 2px 8px;
-        font-size: 0.8rem;
-        background: #f8fafc;
+        padding: 0 4px;
+        font-size: 0.72rem;
+        background-color: #f8fafc;
         outline: none;
     }
-    .figures-text { font-size: 0.7rem; color: #64748b; text-align: center; margin-top: 2px; }
+    .result-sub { font-size: 0.65rem; color: #64748b; text-align: center; margin-top: 1px; }
 
-    /* Spread Cost Row 2 */
+    /* Spread Cost (Row 2) */
+    .cost-title { font-size: 0.72rem; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
     .spread-row {
         display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 10px;
+        gap: 10px;
+        margin-bottom: 8px;
     }
-    .cost-group {
+    .cost-pill {
         display: flex;
         align-items: center;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
+        height: 26px;
         overflow: hidden;
-        height: 30px;
     }
-    .badge-debit {
+    .pill-debit {
         background-color: #0284c7;
         color: white;
-        font-size: 0.78rem;
         font-weight: 700;
-        padding: 0 10px;
+        font-size: 0.72rem;
+        padding: 0 8px;
         height: 100%;
         display: flex;
         align-items: center;
     }
-    .badge-credit {
+    .pill-credit {
         background-color: #ef4444;
         color: white;
-        font-size: 0.78rem;
         font-weight: 700;
-        padding: 0 10px;
+        font-size: 0.72rem;
+        padding: 0 8px;
         height: 100%;
         display: flex;
         align-items: center;
     }
-    .cost-val-input {
+    .cost-input {
         border: none;
-        padding: 0 8px;
-        font-size: 0.8rem;
-        width: 90px;
         outline: none;
-        background: #ffffff;
+        font-size: 0.72rem;
+        padding: 0 6px;
+        width: 72px;
+        background: transparent;
     }
 
-    /* Modules */
-    .modules-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
+    /* 3 Scanner Modules */
     .module-card {
-        border-radius: 6px;
+        border-radius: 5px;
         padding: 6px 8px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        margin-bottom: 6px;
     }
     .mod-debit { background-color: #f0fdf4; border: 1px solid #bbf7d0; }
     .mod-gap { background-color: #fff1f2; border: 1px solid #fecdd3; }
     .mod-spike { background-color: #fefce8; border: 1px solid #fef08a; }
-    .module-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; }
-    .module-actions { display: flex; gap: 4px; align-items: center; }
 
-    .btn {
+    .module-heading { font-size: 0.78rem; font-weight: 700; color: #0f172a; margin-bottom: 5px; }
+    .btn-row { display: flex; align-items: center; gap: 4px; }
+    
+    .btn-opt {
+        flex: 1;
+        height: 26px;
         border: 1px solid #cbd5e1;
         background: #ffffff;
         border-radius: 4px;
-        padding: 4px 10px;
-        font-size: 0.76rem;
+        font-size: 0.72rem;
         font-weight: 600;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        flex: 1;
-        text-align: center;
     }
     .btn-scan {
         background-color: #10b981;
         border-color: #10b981;
-        color: white;
+        color: #ffffff;
     }
+    .num-box {
+        width: 32px;
+        height: 26px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        text-align: center;
+        font-size: 0.72rem;
+        background: #ffffff;
+        outline: none;
+    }
+    .unit-symbol { font-size: 0.72rem; font-weight: bold; margin-right: 2px; }
 
-    /* Table Toolbar */
-    .results-head-bar {
+    /* Results Header Bar */
+    .results-head {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: 10px 0 6px 0;
+        margin: 8px 0 6px 0;
     }
-    .results-title { font-size: 0.96rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .search-input {
+    .results-left {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+    .results-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .total-counter { font-size: 0.72rem; color: #334155; }
+    .table-search {
+        height: 24px;
+        width: 90px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 0.78rem;
-        width: 130px;
+        font-size: 0.70rem;
+        padding: 0 4px;
+        outline: none;
     }
 
-    /* Excel Table */
-    .excel-table {
+    /* Excel Scroll Container */
+    .excel-scroll {
         width: 100%;
-        border-collapse: collapse;
-        font-size: 0.75rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #cbd5e1;
         background: #ffffff;
     }
-    .excel-table th {
-        border: 1px solid #cbd5e1;
-        padding: 5px 3px;
-        text-align: center;
-        font-weight: 600;
+    .excel-grid {
+        border-collapse: collapse;
+        font-size: 0.70rem;
+        white-space: nowrap;
+        min-width: 860px;
     }
-    .excel-table td {
+    .excel-grid th {
+        border: 1px solid #cbd5e1;
+        padding: 4px 6px;
+        text-align: center;
+    }
+    .excel-grid td {
         border: 1px solid #e2e8f0;
         height: 22px;
+        padding: 2px 4px;
         text-align: center;
+    }
+    .col-letter th {
+        background-color: #cbd5e1;
+        color: #475569;
+        font-weight: bold;
+        font-size: 0.68rem;
+    }
+    .col-title th {
+        background-color: #e2e8f0;
+        color: #1e293b;
+        font-weight: 600;
     }
     .row-index {
         background-color: #f1f5f9;
         font-weight: 700;
         color: #64748b;
-        width: 28px;
-    }
-    .col-letter-row th {
-        background-color: #cbd5e1;
-        color: #475569;
-        font-weight: 700;
-        font-size: 0.72rem;
-    }
-    .col-name-row th {
-        background-color: #e2e8f0;
-        color: #334155;
+        width: 26px;
     }
 </style>
 </head>
 <body>
 
-<div class="scroll-wrapper">
-    <!-- Top Header -->
-    <div class="top-bar">
+    <!-- Header -->
+    <div class="header-bar">
         <div>
             <div class="brand-title">📊 Project A Pro</div>
             <div class="brand-sub">Options Ratio Spread Scanner</div>
         </div>
-        <div class="status-badge">
-            <span style="color:#22c55e;">●</span> <b>Live Scan</b> &nbsp; <code>06 Oct 2026 12:30:15</code> 🔄
+        <div class="status-text">
+            <span class="status-dot"></span> <b>Live Scan</b> &nbsp; <code>06 Oct 2026 12:30:15</code> 🔄
         </div>
     </div>
 
-    <!-- Row 1: Filters -->
+    <!-- Filters Row 1 -->
     <div class="filter-grid">
-        <div class="field-box">
-            <span class="field-label">Delta</span>
-            <select class="styled-select"><option>0.20 - 0.25</option><option>0.15 - 0.20</option></select>
+        <div class="field-wrap">
+            <span class="field-title">Delta</span>
+            <select class="custom-select"><option>0.20 - 0.25</option><option>0.15 - 0.20</option></select>
         </div>
-        <div class="field-box">
-            <span class="field-label">Ratio</span>
-            <select class="styled-select"><option>1 : 3</option><option>1 : 2</option></select>
+        <div class="field-wrap">
+            <span class="field-title">Ratio</span>
+            <select class="custom-select"><option>1 : 3</option><option>1 : 2</option></select>
         </div>
-        <div class="field-box">
-            <span class="field-label">Option Type</span>
-            <select class="styled-select"><option>CE (Call)</option><option>PE (Put)</option></select>
+        <div class="field-wrap">
+            <span class="field-title">Option Type</span>
+            <select class="custom-select"><option>CE (Call)</option><option>PE (Put)</option></select>
         </div>
-        <div class="field-box">
-            <span class="field-label">Expiry</span>
-            <select class="styled-select"><option>26 Sep 2026</option><option>06 Oct 2026</option></select>
+        <div class="field-wrap">
+            <span class="field-title">Expiry</span>
+            <select class="custom-select"><option>26 Sep 2026</option><option>06 Oct 2026</option></select>
         </div>
-        <div class="field-box">
-            <span class="field-label">Result</span>
-            <input type="text" class="styled-input" value="0" style="text-align:center;">
-            <div class="figures-text">Figures</div>
+        <div class="field-wrap">
+            <span class="field-title">Result</span>
+            <input type="text" class="custom-input" value="0" style="text-align:center;">
+            <span class="result-sub">Figures</span>
         </div>
     </div>
 
-    <!-- Row 2: Spread Cost -->
-    <div style="font-size:0.76rem; font-weight:700; margin-bottom:4px;">Spread Cost (₹)</div>
+    <!-- Spread Cost Row 2 -->
+    <div class="cost-title">Spread Cost (₹)</div>
     <div class="spread-row">
-        <div class="cost-group">
-            <div class="badge-debit">Debit</div>
-            <input type="text" class="cost-val-input" value="0 - 5000">
+        <div class="cost-pill">
+            <div class="pill-debit">Debit</div>
+            <input type="text" class="cost-input" value="0 - 5000">
         </div>
-        <div class="cost-group">
-            <div class="badge-credit">Credit</div>
-            <input type="text" class="cost-val-input" value="0 - 5000">
+        <div class="cost-pill">
+            <div class="pill-credit">Credit</div>
+            <input type="text" class="cost-input" value="0 - 5000">
         </div>
     </div>
 
-    <!-- 3 Scanner Modules -->
-    <div class="modules-container">
-        <div class="module-card mod-debit">
-            <div class="module-title">1. Debit ₹0 Scanner</div>
-            <div class="module-actions">
-                <button class="btn">Auto</button>
-                <button class="btn">Manual</button>
-                <button class="btn btn-scan">Scan</button>
-            </div>
+    <!-- 1. Debit ₹0 Scanner -->
+    <div class="module-card mod-debit">
+        <div class="module-heading">1. Debit ₹0 Scanner</div>
+        <div class="btn-row">
+            <button class="btn-opt">Auto</button>
+            <button class="btn-opt">Manual</button>
+            <button class="btn-opt btn-scan">Scan</button>
         </div>
-        <div class="module-card mod-gap">
-            <div class="module-title">2. % Gap Scanner</div>
-            <div class="module-actions">
-                <input type="text" value="20" style="width:36px; height:24px; text-align:center; border:1px solid #cbd5e1; border-radius:4px;">
-                <span style="font-weight:bold; font-size:0.75rem;">%</span>
-                <button class="btn">Auto</button>
-                <button class="btn">Manual</button>
-                <button class="btn btn-scan">Scan</button>
-            </div>
+    </div>
+
+    <!-- 2. % Gap Scanner -->
+    <div class="module-card mod-gap">
+        <div class="module-heading">2. % Gap Scanner</div>
+        <div class="btn-row">
+            <input type="text" class="num-box" value="20">
+            <span class="unit-symbol">%</span>
+            <button class="btn-opt">Auto</button>
+            <button class="btn-opt">Manual</button>
+            <button class="btn-opt btn-scan">Scan</button>
         </div>
-        <div class="module-card mod-spike">
-            <div class="module-title">3. Option Premium Spike (UP / DOWN)</div>
-            <div class="module-actions">
-                <input type="text" value="10" style="width:36px; height:24px; text-align:center; border:1px solid #cbd5e1; border-radius:4px;">
-                <span style="font-weight:bold; font-size:0.75rem;">%</span>
-                <button class="btn">Auto</button>
-                <button class="btn">Manual</button>
-                <button class="btn btn-scan">Scan</button>
-            </div>
+    </div>
+
+    <!-- 3. Option Premium Spike (UP / DOWN) -->
+    <div class="module-card mod-spike">
+        <div class="module-heading">3. Option Premium Spike (UP / DOWN)</div>
+        <div class="btn-row">
+            <input type="text" class="num-box" value="10">
+            <span class="unit-symbol">%</span>
+            <button class="btn-opt">Auto</button>
+            <button class="btn-opt">Manual</button>
+            <button class="btn-opt btn-scan">Scan</button>
         </div>
     </div>
 
     <!-- Results Header -->
-    <div class="results-head-bar">
-        <div class="results-title">🎯 Scan Results (Live)</div>
-        <div style="font-size:0.8rem; color:#475569;">Total Results: <b>24</b></div>
-        <input type="text" class="search-input" placeholder="🔍 Search...">
+    <div class="results-head">
+        <div class="results-left">🎯 Scan Results (Live)</div>
+        <div class="results-right">
+            <span class="total-counter">Total Results: <b>24</b></span>
+            <input type="text" class="table-search" placeholder="🔍 Search...">
+        </div>
     </div>
 
-    <!-- Complete Clean Excel Grid -->
-    <table class="excel-table">
-        <thead>
-            <tr class="col-letter-row">
-                <th class="row-index"></th>
-                <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th>
-            </tr>
-            <tr class="col-name-row">
-                <th class="row-index">#</th>
-                <th>#</th>
-                <th>Company - delta value</th>
-                <th>strike buy/sale</th>
-                <th>price/ price</th>
-                <th>R1 buystrike / sale</th>
-                <th>R1 (price/ price)</th>
-                <th>R1 (profit)</th>
-                <th>R2 buystrike / sale</th>
-                <th>R2 (price/ price)</th>
-                <th>R2 (profit)</th>
-                <th>Resu date</th>
-            </tr>
-        </thead>
-        <tbody>
+    <!-- Excel Table -->
+    <div class="excel-scroll">
+        <table class="excel-grid">
+            <thead>
+                <tr class="col-letter">
+                    <th class="row-index"></th>
+                    <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th>
+                </tr>
+                <tr class="col-title">
+                    <th class="row-index">#</th>
+                    <th>#</th>
+                    <th>Company - delta value</th>
+                    <th>strike buy/sale</th>
+                    <th>price/ price</th>
+                    <th>R1 buystrike / sale</th>
+                    <th>R1 (price/ price)</th>
+                    <th>R1 (profit)</th>
+                    <th>R2 buystrike / sale</th>
+                    <th>R2 (price/ price)</th>
+                    <th>R2 (profit)</th>
+                    <th>Resu date</th>
+                </tr>
+            </thead>
+            <tbody>
 """
 
-# Append 14 excel rows cleanly
+# Generate 14 Excel rows
 for i in range(1, 15):
-    app_html += f"""
-            <tr>
-                <td class="row-index">{i}</td>
-                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-            </tr>
+    mobile_ui_html += f"""
+                <tr>
+                    <td class="row-index">{i}</td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
     """
 
-app_html += """
-        </tbody>
-    </table>
-</div>
+mobile_ui_html += """
+            </tbody>
+        </table>
+    </div>
 
 </body>
 </html>
 """
 
-# Component render: perfectly renders raw HTML without Markdown parser breaking it
-components.html(app_html, height=720, scrolling=True)
+components.html(mobile_ui_html, height=760, scrolling=False)
