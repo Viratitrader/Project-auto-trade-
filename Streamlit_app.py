@@ -9,12 +9,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Safe secrets handling (Never crashes if secrets.toml is missing)
-try:
-    secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
-except Exception:
-    secret_token = os.environ.get("UPSTOX_ACCESS_TOKEN", "")
-
 st.markdown("""
 <style>
     .block-container {
@@ -25,12 +19,10 @@ st.markdown("""
         max-width: 100% !important;
     }
     
-    /* Top Header Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .logo-title { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
     .sub-title { font-size: 0.8rem; color: #64748b; margin: 0; }
     
-    /* Filter Badges & Labels */
     .filter-label { font-size: 0.8rem; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
     .sub-caption { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
     
@@ -55,7 +47,6 @@ st.markdown("""
         align-items: center;
     }
     
-    /* Modules Cards */
     .card-mod-1 {
         background: #f0fdf4;
         border: 1px solid #bbf7d0;
@@ -79,7 +70,6 @@ st.markdown("""
     }
     .mod-title { font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
 
-    /* Excel-Style Table */
     .excel-container {
         width: 100%;
         overflow-x: auto;
@@ -123,7 +113,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session state
 if "auto_scan" not in st.session_state:
     st.session_state.auto_scan = False
 
@@ -229,7 +218,7 @@ with r2:
 with r3:
     st.text_input("Search", placeholder="🔍 Search...", label_visibility="collapsed")
 
-# Excel Grid Table HTML
+# Excel Grid Table
 excel_html = """
 <div class="excel-container">
 <table class="excel-table">
