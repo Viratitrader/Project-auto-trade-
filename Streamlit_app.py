@@ -10,13 +10,18 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # =========================================================
-# PAGE CONFIG & STRICT MOBILE SCREEN-FIT CSS
+# PAGE CONFIG
 # =========================================================
+
 st.set_page_config(
     page_title="Project A Pro",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# =========================================================
+# MOBILE RESPONSIVE CSS
+# =========================================================
 
 st.markdown("""
 <style>
@@ -25,8 +30,13 @@ st.markdown("""
         overflow-x: hidden !important;
         padding: 4px 6px !important;
         margin: 0px !important;
+        box-sizing: border-box !important;
     }
-    #MainMenu, header, footer { display: none !important; visibility: hidden; }
+
+    #MainMenu, header, footer {
+        display: none !important;
+        visibility: hidden;
+    }
 
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
@@ -36,19 +46,23 @@ st.markdown("""
         margin-bottom: 3px !important;
         width: 100% !important;
     }
+
     div[data-testid="column"] {
         flex: 1 1 0px !important;
         min-width: 0px !important;
         padding: 0px !important;
     }
 
-    .stTextInput input, .stSelectbox select, .stNumberInput input {
+    .stTextInput input,
+    .stSelectbox select,
+    .stNumberInput input {
         font-size: 0.65rem !important;
         padding: 2px 4px !important;
         height: 28px !important;
         min-height: 28px !important;
         font-weight: 600 !important;
     }
+
     label[data-testid="stWidgetLabel"] p {
         font-size: 0.60rem !important;
         font-weight: 700 !important;
@@ -69,6 +83,7 @@ st.markdown("""
         color: #ffffff !important;
         border: none !important;
     }
+
     div[data-testid="stToggle"] {
         margin-top: 4px !important;
     }
@@ -78,32 +93,61 @@ st.markdown("""
         font-weight: 700 !important;
         padding: 2px 6px !important;
     }
+
+    @media screen and (max-width: 700px) {
+        .block-container {
+            padding-left: 5px !important;
+            padding-right: 5px !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+        }
+
+        div[data-testid="column"] {
+            min-width: 0px !important;
+            max-width: 100% !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
+
 
 # =========================================================
 # CONSTANTS & AUTH
 # =========================================================
+
 OPTION_CHAIN_URL = "https://api.upstox.com/v2/option/chain"
+
 INSTRUMENT_URLS = [
     "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz",
     "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz"
 ]
+
 TODAY = date.today()
 
 access_token = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
 
 if not access_token:
     try:
-        access_token = str(st.secrets.get("UPSTOX_ACCESS_TOKEN", "")).strip()
+        access_token = str(
+            st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
+        ).strip()
     except Exception:
         access_token = ""
 
 if not access_token:
+
     if "upstox_access_token" not in st.session_state:
         st.session_state.upstox_access_token = ""
-    
-    with st.expander("🔑 Upstox Access Token સેટ કરો", expanded=(not bool(st.session_state.upstox_access_token))):
+
+    with st.expander(
+        "🔑 Upstox Access Token સેટ કરો",
+        expanded=(
+            not bool(st.session_state.upstox_access_token)
+        )
+    ):
+
         token_input = st.text_input(
             "Access Token",
             type="password",
@@ -111,238 +155,705 @@ if not access_token:
             key="token_input_box",
             label_visibility="collapsed"
         )
-        if token_input.strip() and token_input.strip() != st.session_state.upstox_access_token:
+
+        if (
+            token_input.strip()
+            and token_input.strip()
+            != st.session_state.upstox_access_token
+        ):
             st.session_state.upstox_access_token = token_input.strip()
             st.rerun()
-        access_token = st.session_state.get("upstox_access_token", "")
+
+        access_token = st.session_state.get(
+            "upstox_access_token", ""
+        )
+
 
 # =========================================================
-# SESSION STATE INITIALIZATION
+# SESSION STATE
 # =========================================================
+
 if "scan_results" not in st.session_state:
     st.session_state.scan_results = []
+
 if "auto_scan_active" not in st.session_state:
     st.session_state.auto_scan_active = False
+
 if "last_scan_time" not in st.session_state:
     st.session_state.last_scan_time = 0
 
+
 # =========================================================
-# SAFE PARSERS (INPUT VALIDATION)
+# SAFE PARSERS
 # =========================================================
+
 def parse_delta_range(text):
+
     try:
         text = str(text).strip().replace(" ", "")
+
         if "-" in text:
             parts = text.split("-")
-            low, high = float(parts[0]), float(parts[1])
+
+            low = float(parts[0])
+            high = float(parts[1])
+
             if high <= 1.0:
-                low, high = low * 100, high * 100
+                low *= 100
+                high *= 100
+
             return min(low, high), max(low, high)
+
         val = float(text)
+
         if val <= 1.0:
-            val = val * 100
+            val *= 100
+
         return 0.0, val
+
     except Exception:
         return 10.0, 25.0
 
+
 def parse_amount_range(text, default_high=5000.0):
+
     try:
-        text = str(text).strip().replace(",", "").replace(" ", "")
+        text = (
+            str(text)
+            .strip()
+            .replace(",", "")
+            .replace(" ", "")
+        )
+
         if "-" in text:
+
             parts = text.split("-")
-            low, high = float(parts[0]), float(parts[1])
+
+            low = float(parts[0])
+            high = float(parts[1])
+
             return min(low, high), max(low, high)
+
         val = float(text) if text else default_high
+
         return 0.0, val
+
     except Exception:
         return 0.0, default_high
 
+
 def parse_profit_input(text):
+
     try:
-        clean_text = str(text).strip().replace(",", "").replace(" ", "")
+        clean_text = (
+            str(text)
+            .strip()
+            .replace(",", "")
+            .replace(" ", "")
+        )
+
         return float(clean_text) if clean_text else 0.0
+
     except Exception:
         return 0.0
 
+
 # =========================================================
-# DATA LOADERS & PARSERS
+# DATA LOADERS
 # =========================================================
+
 @st.cache_data(ttl=3600)
 def load_instruments():
+
     for url in INSTRUMENT_URLS:
+
         try:
-            res = requests.get(url, timeout=25, headers={"User-Agent": "Mozilla/5.0"})
-            if res.status_code == 200:
-                raw = gzip.decompress(res.content)
-                data = json.loads(raw.decode("utf-8"))
-                if isinstance(data, dict):
-                    data = data.get("data", list(data.values()))
-                df = pd.DataFrame(data)
-                if not df.empty:
-                    return df
+
+            res = requests.get(
+                url,
+                timeout=25,
+                headers={"User-Agent": "Mozilla/5.0"}
+            )
+
+            if res.status_code != 200:
+                continue
+
+            content = res.content
+
+            # GZIP detection
+            if content[:2] == b"\x1f\x8b":
+                content = gzip.decompress(content)
+
+            data = json.loads(content.decode("utf-8"))
+
+            if isinstance(data, dict):
+                data = data.get(
+                    "data",
+                    list(data.values())
+                )
+
+            df = pd.DataFrame(data)
+
+            if not df.empty:
+                return df
+
         except Exception:
             continue
+
     return pd.DataFrame()
+
+
+# =========================================================
+# EXPIRY DATE CONVERSION
+# =========================================================
+
+def convert_expiry_dates(series):
+
+    numeric = pd.to_numeric(
+        series,
+        errors="coerce"
+    )
+
+    result = pd.Series(
+        pd.NaT,
+        index=series.index,
+        dtype="datetime64[ns]"
+    )
+
+    numeric_mask = numeric.notna()
+
+    if numeric_mask.any():
+
+        values = numeric[numeric_mask]
+
+        # Milliseconds / Seconds detection
+        median_value = values.median()
+
+        if median_value > 100000000000:
+            unit = "ms"
+        elif median_value > 1000000000:
+            unit = "s"
+        else:
+            unit = None
+
+        if unit:
+            result.loc[numeric_mask] = pd.to_datetime(
+                values,
+                unit=unit,
+                errors="coerce"
+            )
+
+    # String date fallback
+    missing_mask = result.isna()
+
+    if missing_mask.any():
+
+        result.loc[missing_mask] = pd.to_datetime(
+            series.loc[missing_mask],
+            errors="coerce"
+        )
+
+    return result
+
+
+# =========================================================
+# BUILD UNIVERSE
+# =========================================================
 
 @st.cache_data(ttl=3600)
 def build_universe():
+
     df = load_instruments()
+
     if df.empty:
         return pd.DataFrame()
 
-    required_cols = {"segment", "instrument_type", "underlying_type", "underlying_key", "expiry", "lot_size"}
+    required_cols = {
+        "segment",
+        "instrument_type",
+        "underlying_type",
+        "underlying_key",
+        "expiry",
+        "lot_size"
+    }
+
     if not required_cols.issubset(set(df.columns)):
         return pd.DataFrame()
 
     df = df[
         (df["segment"].astype(str) == "NSE_FO") &
-        (df["instrument_type"].astype(str).isin(["CE", "PE"])) &
-        (df["underlying_type"].astype(str) == "EQUITY") &
-        (df["underlying_key"].astype(str).str.startswith("NSE_EQ|"))
+        (
+            df["instrument_type"]
+            .astype(str)
+            .isin(["CE", "PE"])
+        ) &
+        (
+            df["underlying_type"].astype(str)
+            == "EQUITY"
+        ) &
+        (
+            df["underlying_key"]
+            .astype(str)
+            .str.startswith("NSE_EQ|")
+        )
     ].copy()
 
     if df.empty:
         return pd.DataFrame()
 
-    df["expiry_dt"] = pd.to_datetime(df["expiry"], errors="coerce")
-    df["expiry"] = df["expiry_dt"].dt.date
-    df["lot_size"] = pd.to_numeric(df["lot_size"], errors="coerce")
-    df = df[df["expiry"].notna() & (df["expiry"] >= TODAY) & (df["lot_size"] > 0)].copy()
+    # Expiry conversion fix
+    expiry_dt = convert_expiry_dates(df["expiry"])
+
+    df["expiry"] = expiry_dt.dt.date
+
+    df["lot_size"] = pd.to_numeric(
+        df["lot_size"],
+        errors="coerce"
+    )
+
+    df = df[
+        df["expiry"].notna() &
+        (df["expiry"] >= TODAY) &
+        (df["lot_size"] > 0)
+    ].copy()
 
     if df.empty:
         return pd.DataFrame()
 
-    sym_col = next((c for c in ["underlying_symbol", "trading_symbol"] if c in df.columns), None)
+    sym_col = next(
+        (
+            c for c in [
+                "underlying_symbol",
+                "trading_symbol"
+            ]
+            if c in df.columns
+        ),
+        None
+    )
+
     if sym_col:
-        universe = df[["underlying_key", sym_col, "expiry", "lot_size"]].drop_duplicates().copy()
-        universe["symbol"] = universe[sym_col].astype(str).str.strip()
+
+        universe = df[
+            [
+                "underlying_key",
+                sym_col,
+                "expiry",
+                "lot_size"
+            ]
+        ].drop_duplicates().copy()
+
+        universe["symbol"] = (
+            universe[sym_col]
+            .astype(str)
+            .str.strip()
+        )
+
     else:
-        universe = df[["underlying_key", "expiry", "lot_size"]].drop_duplicates().copy()
-        universe["symbol"] = universe["underlying_key"].astype(str).str.replace("NSE_EQ|", "", regex=False)
+
+        universe = df[
+            [
+                "underlying_key",
+                "expiry",
+                "lot_size"
+            ]
+        ].drop_duplicates().copy()
+
+        universe["symbol"] = (
+            universe["underlying_key"]
+            .astype(str)
+            .str.replace(
+                "NSE_EQ|",
+                "",
+                regex=False
+            )
+        )
 
     return universe
 
+
 universe = build_universe()
-has_universe = not universe.empty and "expiry" in universe.columns
-available_expiries = sorted(universe["expiry"].dropna().unique()) if has_universe else [TODAY]
+
+has_universe = (
+    not universe.empty
+    and "expiry" in universe.columns
+)
+
+available_expiries = (
+    sorted(universe["expiry"].dropna().unique())
+    if has_universe
+    else [TODAY]
+)
+
+
+# =========================================================
+# OPTION CHAIN API
+# =========================================================
 
 def get_option_chain(underlying_key, exp_date, token):
-    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
-    params = {"instrument_key": underlying_key, "expiry_date": exp_date.isoformat()}
+
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}"
+    }
+
+    params = {
+        "instrument_key": underlying_key,
+        "expiry_date": exp_date.isoformat()
+    }
+
     try:
-        r = requests.get(OPTION_CHAIN_URL, params=params, headers=headers, timeout=10)
+
+        r = requests.get(
+            OPTION_CHAIN_URL,
+            params=params,
+            headers=headers,
+            timeout=10
+        )
+
         if r.status_code == 200:
-            return r.json().get("data", []), None
+
+            data = r.json().get("data", [])
+
+            return data, None
+
         elif r.status_code == 401:
+
             return [], "TOKEN_EXPIRED"
+
         elif r.status_code == 429:
+
             return [], "RATE_LIMIT"
+
         else:
+
             return [], f"API_ERROR_{r.status_code}"
+
+    except requests.exceptions.Timeout:
+
+        return [], "FETCH_TIMEOUT"
+
+    except requests.exceptions.RequestException:
+
+        return [], "FETCH_ERROR"
+
     except Exception:
-        pass
-    return [], "FETCH_ERROR"
+
+        return [], "FETCH_ERROR"
+
+
+# =========================================================
+# EXTRACT CE / PE OPTIONS
+# =========================================================
 
 def extract_side_options(chain, opt_type):
-    key = "call_options" if opt_type == "CE" else "put_options"
+
+    key = (
+        "call_options"
+        if opt_type == "CE"
+        else "put_options"
+    )
+
     items = []
+
     spot_price = 0.0
+
     for row in chain:
+
         try:
-            spot = float(row.get("underlying_spot_price", 0) or 0)
+
+            spot = float(
+                row.get("underlying_spot_price", 0) or 0
+            )
+
             if spot > 0 and spot_price == 0:
                 spot_price = spot
-            strike = float(row.get("strike_price", 0) or 0)
+
+            strike = float(
+                row.get("strike_price", 0) or 0
+            )
+
             opt = row.get(key, {}) or {}
+
             mdata = opt.get("market_data", {}) or {}
+
             greeks = opt.get("option_greeks", {}) or {}
-            ltp = float(mdata.get("ltp", 0) or 0)
-            delta = abs(float(greeks.get("delta", 0) or 0)) * 100
+
+            ltp = float(
+                mdata.get("ltp", 0) or 0
+            )
+
+            delta = abs(
+                float(greeks.get("delta", 0) or 0)
+            ) * 100
+
             if strike > 0 and ltp > 0:
-                items.append({"strike": strike, "ltp": ltp, "delta": delta})
+
+                items.append({
+                    "strike": strike,
+                    "ltp": ltp,
+                    "delta": delta
+                })
+
         except Exception:
             continue
-    items.sort(key=lambda x: x["strike"])
+
+    items.sort(
+        key=lambda x: x["strike"]
+    )
+
     return items, spot_price
+
 
 # =========================================================
 # SCAN LOGIC (% GAP ENGINE)
 # =========================================================
-def scan_stock_pg(item, exp_val, opt_type, delta_low, delta_high, gap_pct, b_qty, s_qty, deb_range, cred_range, min_pft):
+
+def scan_stock_pg(
+    item,
+    exp_val,
+    opt_type,
+    delta_low,
+    delta_high,
+    gap_pct,
+    b_qty,
+    s_qty,
+    deb_range,
+    cred_range,
+    min_pft
+):
+
     try:
-        chain, err = get_option_chain(item["underlying_key"], exp_val, access_token)
+
+        chain, err = get_option_chain(
+            item["underlying_key"],
+            exp_val,
+            access_token
+        )
+
         if err or not chain:
             return None, err
 
-        options, spot_price = extract_side_options(chain, opt_type)
+        options, spot_price = extract_side_options(
+            chain,
+            opt_type
+        )
+
         if len(options) < 3 or spot_price <= 0:
             return None, None
 
-        delta_matches = [x for x in options if delta_low <= x["delta"] <= delta_high]
+        delta_matches = [
+            x for x in options
+            if delta_low <= x["delta"] <= delta_high
+        ]
+
         if not delta_matches:
             return None, None
-        mid_delta = (delta_low + delta_high) / 2
-        delta_matches.sort(key=lambda x: abs(x["delta"] - mid_delta))
+
+        mid_delta = (
+            delta_low + delta_high
+        ) / 2
+
+        delta_matches.sort(
+            key=lambda x: abs(
+                x["delta"] - mid_delta
+            )
+        )
+
         base_opt = delta_matches[0]
+
         base_strike = base_opt["strike"]
+
         base_ltp = base_opt["ltp"]
+
         lot = int(item["lot_size"])
 
-        gap_val = spot_price * (gap_pct / 100.0)
-        target_exact = (base_strike + gap_val) if opt_type == "CE" else (base_strike - gap_val)
+        gap_val = spot_price * (
+            gap_pct / 100.0
+        )
+
+        target_exact = (
+            base_strike + gap_val
+            if opt_type == "CE"
+            else base_strike - gap_val
+        )
 
         if opt_type == "CE":
-            targets = [x for x in options if x["strike"] >= target_exact and x["strike"] > base_strike]
+
+            targets = [
+                x for x in options
+                if (
+                    x["strike"] >= target_exact
+                    and x["strike"] > base_strike
+                )
+            ]
+
             if not targets:
                 return None, None
-            targets.sort(key=lambda x: x["strike"])
+
+            targets.sort(
+                key=lambda x: x["strike"]
+            )
+
             target_opt = targets[0]
+
         else:
-            targets = [x for x in options if x["strike"] <= target_exact and x["strike"] < base_strike]
+
+            targets = [
+                x for x in options
+                if (
+                    x["strike"] <= target_exact
+                    and x["strike"] < base_strike
+                )
+            ]
+
             if not targets:
                 return None, None
-            targets.sort(key=lambda x: -x["strike"])
+
+            targets.sort(
+                key=lambda x: -x["strike"]
+            )
+
             target_opt = targets[0]
 
         target_strike = target_opt["strike"]
+
         target_ltp = target_opt["ltp"]
 
-        net_pt = (s_qty * target_ltp) - (b_qty * base_ltp)
-        amount = round(abs(net_pt) * lot, 2)
+        net_pt = (
+            s_qty * target_ltp
+        ) - (
+            b_qty * base_ltp
+        )
+
+        amount = round(
+            abs(net_pt) * lot,
+            2
+        )
 
         if abs(net_pt) < 1e-6:
+
             side = "ZERO"
+
             dc_label = f"Z{amount:,.0f}"
+
         elif net_pt > 0:
+
             side = "CREDIT"
+
             dc_label = f"C{amount:,.0f}"
+
         else:
+
             side = "DEBIT"
+
             dc_label = f"D{amount:,.0f}"
 
-        if side == "CREDIT" and not (cred_range[0] <= amount <= cred_range[1]):
-            return None, None
-        if side == "DEBIT" and not (deb_range[0] <= amount <= deb_range[1]):
-            return None, None
+        if side == "CREDIT":
+
+            if not (
+                cred_range[0]
+                <= amount
+                <= cred_range[1]
+            ):
+                return None, None
+
+        if side == "DEBIT":
+
+            if not (
+                deb_range[0]
+                <= amount
+                <= deb_range[1]
+            ):
+                return None, None
+
         if amount < min_pft:
             return None, None
 
-        actual_gap = abs(target_strike - base_strike)
-        r1_buy_strike = (base_strike - actual_gap) if opt_type == "CE" else (base_strike + actual_gap)
+        # REVIEW 1
+        actual_gap = abs(
+            target_strike - base_strike
+        )
+
+        r1_buy_strike = (
+            base_strike - actual_gap
+            if opt_type == "CE"
+            else base_strike + actual_gap
+        )
+
         r1_sell_strike = base_strike
 
-        r1_b = next((x for x in options if abs(x["strike"] - r1_buy_strike) < 0.01), None)
-        r1_s = next((x for x in options if abs(x["strike"] - r1_sell_strike) < 0.01), None)
-        r1_txt = f"{r1_buy_strike:g}/{r1_sell_strike:g}" if (r1_b and r1_s) else "-/-"
-        r1_pp = f"{r1_b['ltp']:.2f}/{r1_s['ltp']:.2f}" if (r1_b and r1_s) else "-/-"
+        r1_b = next(
+            (
+                x for x in options
+                if abs(
+                    x["strike"] - r1_buy_strike
+                ) < 0.01
+            ),
+            None
+        )
 
-        r2_buy_strike = (r1_buy_strike - actual_gap) if opt_type == "CE" else (r1_buy_strike + actual_gap)
+        r1_s = next(
+            (
+                x for x in options
+                if abs(
+                    x["strike"] - r1_sell_strike
+                ) < 0.01
+            ),
+            None
+        )
+
+        r1_txt = (
+            f"{r1_buy_strike:g}/{r1_sell_strike:g}"
+            if (r1_b and r1_s)
+            else "-/-"
+        )
+
+        r1_pp = (
+            f"{r1_b['ltp']:.2f}/{r1_s['ltp']:.2f}"
+            if (r1_b and r1_s)
+            else "-/-"
+        )
+
+        # REVIEW 2
+        r2_buy_strike = (
+            r1_buy_strike - actual_gap
+            if opt_type == "CE"
+            else r1_buy_strike + actual_gap
+        )
+
         r2_sell_strike = r1_buy_strike
 
-        r2_b = next((x for x in options if abs(x["strike"] - r2_buy_strike) < 0.01), None)
-        r2_s = next((x for x in options if abs(x["strike"] - r2_sell_strike) < 0.01), None)
-        r2_txt = f"{r2_buy_strike:g}/{r2_sell_strike:g}" if (r2_b and r2_s) else "-/-"
-        r2_pp = f"{r2_b['ltp']:.2f}/{r2_s['ltp']:.2f}" if (r2_b and r2_s) else "-/-"
+        r2_b = next(
+            (
+                x for x in options
+                if abs(
+                    x["strike"] - r2_buy_strike
+                ) < 0.01
+            ),
+            None
+        )
+
+        r2_s = next(
+            (
+                x for x in options
+                if abs(
+                    x["strike"] - r2_sell_strike
+                ) < 0.01
+            ),
+            None
+        )
+
+        r2_txt = (
+            f"{r2_buy_strike:g}/{r2_sell_strike:g}"
+            if (r2_b and r2_s)
+            else "-/-"
+        )
+
+        r2_pp = (
+            f"{r2_b['ltp']:.2f}/{r2_s['ltp']:.2f}"
+            if (r2_b and r2_s)
+            else "-/-"
+        )
 
         return {
             "symbol": item["symbol"],
@@ -357,130 +868,406 @@ def scan_stock_pg(item, exp_val, opt_type, delta_low, delta_high, gap_pct, b_qty
             "r2_pp": r2_pp,
             "sort_score": amount
         }, None
+
     except Exception:
+
         return None, None
 
+
 # =========================================================
-# HEADER & FILTER PANELS
+# HEADER
 # =========================================================
-st.markdown("<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;'><b style='font-size:0.80rem;'>📊 Project A Pro</b><span style='font-size:0.62rem;color:green;'>🟢 Live</span></div>", unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <div style='display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:2px;'>
+    <b style='font-size:0.80rem;'>📊 Project A Pro</b>
+    <span style='font-size:0.62rem;color:green;'>
+    🟢 Live
+    </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 if not has_universe:
-    st.warning("⚠️ Upstox ડેટા લોડ થયો નથી. કૃપા કરીને થોડીવાર પછી ફરી પ્રયાસ કરો.")
+
+    st.warning(
+        "⚠️ Upstox ડેટા લોડ થયો નથી. "
+        "કૃપા કરીને થોડીવાર પછી ફરી પ્રયાસ કરો."
+    )
+
+
+# =========================================================
+# FILTER PANELS
+# =========================================================
 
 f1, f2, f3 = st.columns([1.2, 0.9, 0.9])
+
 with f1:
-    delta_in = st.text_input("Delta", "0.10 - 0.25")
+
+    delta_in = st.text_input(
+        "Delta",
+        "0.10 - 0.25"
+    )
+
 with f2:
-    ratio_in = st.selectbox("Ratio", ["1:3", "3:10", "1:4", "2:7"])
+
+    ratio_in = st.selectbox(
+        "Ratio",
+        ["1:3", "3:10", "1:4", "2:7"]
+    )
+
 with f3:
-    opt_in = st.selectbox("Option", ["CE", "PE"])
+
+    opt_in = st.selectbox(
+        "Option",
+        ["CE", "PE"]
+    )
+
 
 f4, f5 = st.columns(2)
+
 with f4:
-    exp_in = st.selectbox("Expiry", available_expiries, format_func=lambda x: x.strftime("%d %b"))
+
+    exp_in = st.selectbox(
+        "Expiry",
+        available_expiries,
+        format_func=lambda x: x.strftime("%d %b")
+    )
+
 with f5:
-    res_profit_in = st.text_input("Result(₹)", "0")
+
+    res_profit_in = st.text_input(
+        "Result(₹)",
+        "0"
+    )
+
 
 sc1, sc2 = st.columns(2)
+
 with sc1:
-    deb_in = st.text_input("Debit Cost(₹)", "0 - 5000")
+
+    deb_in = st.text_input(
+        "Debit Cost(₹)",
+        "0 - 5000"
+    )
+
 with sc2:
-    cred_in = st.text_input("Credit Cost(₹)", "0 - 5000")
+
+    cred_in = st.text_input(
+        "Credit Cost(₹)",
+        "0 - 5000"
+    )
+
+
+# =========================================================
+# SCANNER CONTROLS
+# =========================================================
 
 m1, m2, m3 = st.columns(3)
+
 with m1:
-    st.markdown("<div style='background:#f0fdf4;padding:3px;border-radius:4px;border:1px solid #bbf7d0;font-size:0.60rem;font-weight:700;text-align:center;'>1. Debit ₹0<br><span style='font-size:0.50rem;font-weight:normal;color:gray;'>Pending</span></div>", unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div style='background:#f0fdf4;
+        padding:3px;
+        border-radius:4px;
+        border:1px solid #bbf7d0;
+        font-size:0.60rem;
+        font-weight:700;
+        text-align:center;'>
+        1. Debit ₹0
+        <br>
+        <span style='font-size:0.50rem;
+        font-weight:normal;
+        color:gray;'>
+        Pending
+        </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 with m2:
-    st.markdown("<div style='background:#fff1f2;padding:2px;border-radius:4px;border:1px solid #fecdd3;margin-bottom:2px;font-size:0.60rem;font-weight:700;text-align:center;'>2. % Gap (0-30%)</div>", unsafe_allow_html=True)
-    gap_pct_val = st.number_input("Gap %", min_value=0.0, max_value=30.0, value=20.0, step=0.5, label_visibility="collapsed")
-    
+
+    st.markdown(
+        """
+        <div style='background:#fff1f2;
+        padding:2px;
+        border-radius:4px;
+        border:1px solid #fecdd3;
+        margin-bottom:2px;
+        font-size:0.60rem;
+        font-weight:700;
+        text-align:center;'>
+        2. % Gap (0-30%)
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    gap_pct_val = st.number_input(
+        "Gap %",
+        min_value=0.0,
+        max_value=30.0,
+        value=20.0,
+        step=0.5,
+        label_visibility="collapsed"
+    )
+
     ca, cb = st.columns([1, 1.3])
+
     with ca:
-        auto_toggle = st.toggle("Auto", value=st.session_state.auto_scan_active)
+
+        auto_toggle = st.toggle(
+            "Auto",
+            value=st.session_state.auto_scan_active
+        )
+
         if auto_toggle != st.session_state.auto_scan_active:
+
             st.session_state.auto_scan_active = auto_toggle
+
             st.rerun()
+
     with cb:
-        man_scan_btn = st.button("Scan", type="primary", use_container_width=True)
+
+        man_scan_btn = st.button(
+            "Scan",
+            type="primary",
+            use_container_width=True
+        )
+
 
 with m3:
-    st.markdown("<div style='background:#fefce8;padding:3px;border-radius:4px;border:1px solid #fef08a;font-size:0.60rem;font-weight:700;text-align:center;'>3. Spike UP/DN<br><span style='font-size:0.50rem;font-weight:normal;color:gray;'>Pending</span></div>", unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div style='background:#fefce8;
+        padding:3px;
+        border-radius:4px;
+        border:1px solid #fef08a;
+        font-size:0.60rem;
+        font-weight:700;
+        text-align:center;'>
+        3. Spike UP/DN
+        <br>
+        <span style='font-size:0.50rem;
+        font-weight:normal;
+        color:gray;'>
+        Pending
+        </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 # =========================================================
-# SCAN EXECUTION (NON-BLOCKING TIMED SCAN)
+# SCAN EXECUTION
 # =========================================================
+
 current_time = time.time()
-auto_scan_due = st.session_state.auto_scan_active and ((current_time - st.session_state.last_scan_time) >= 60)
-should_scan = man_scan_btn or auto_scan_due
+
+auto_scan_due = (
+    st.session_state.auto_scan_active
+    and (
+        current_time - st.session_state.last_scan_time
+    ) >= 60
+)
+
+should_scan = (
+    man_scan_btn
+    or auto_scan_due
+)
+
 
 if should_scan:
-    st.session_state.last_scan_time = current_time
-    if not access_token:
-        st.error("Upstox Access Token જરૂરી છે.")
-    elif not has_universe:
-        st.error("સ્ટોક યુનિવર્સ ઉપલબ્ધ નથી.")
-    else:
-        ratio_map = {"1:3": (1, 3), "3:10": (3, 10), "1:4": (1, 4), "2:7": (2, 7)}
-        b_qty, s_qty = ratio_map[ratio_in]
-        d_low, d_high = parse_delta_range(delta_in)
-        deb_range = parse_amount_range(deb_in, 5000.0)
-        cred_range = parse_amount_range(cred_in, 5000.0)
-        min_pft = parse_profit_input(res_profit_in)
 
-        scan_universe = universe[universe["expiry"] == exp_in].drop_duplicates(subset=["underlying_key"]).reset_index(drop=True)
+    st.session_state.last_scan_time = current_time
+
+    if not access_token:
+
+        st.error(
+            "Upstox Access Token જરૂરી છે."
+        )
+
+    elif not has_universe:
+
+        st.error(
+            "સ્ટોક યુનિવર્સ ઉપલબ્ધ નથી."
+        )
+
+    else:
+
+        ratio_map = {
+            "1:3": (1, 3),
+            "3:10": (3, 10),
+            "1:4": (1, 4),
+            "2:7": (2, 7)
+        }
+
+        b_qty, s_qty = ratio_map[ratio_in]
+
+        d_low, d_high = parse_delta_range(
+            delta_in
+        )
+
+        deb_range = parse_amount_range(
+            deb_in,
+            5000.0
+        )
+
+        cred_range = parse_amount_range(
+            cred_in,
+            5000.0
+        )
+
+        min_pft = parse_profit_input(
+            res_profit_in
+        )
+
+        scan_universe = universe[
+            universe["expiry"] == exp_in
+        ].drop_duplicates(
+            subset=["underlying_key"]
+        ).reset_index(drop=True)
+
         raw_results = []
+
         critical_err = None
 
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(
+            max_workers=5
+        ) as executor:
+
             futures = {
                 executor.submit(
-                    scan_stock_pg, row, exp_in, opt_in, d_low, d_high,
-                    gap_pct_val, b_qty, s_qty, deb_range, cred_range, min_pft
+                    scan_stock_pg,
+                    row,
+                    exp_in,
+                    opt_in,
+                    d_low,
+                    d_high,
+                    gap_pct_val,
+                    b_qty,
+                    s_qty,
+                    deb_range,
+                    cred_range,
+                    min_pft
                 ): row["symbol"]
+
                 for _, row in scan_universe.iterrows()
             }
+
             for future in as_completed(futures):
-                res, err = future.result()
-                if err == "TOKEN_EXPIRED":
-                    critical_err = "Upstox Token એક્સપાયર થઈ ગયો છે. કૃપા કરીને નવો ટોકન નાખો."
-                elif err == "RATE_LIMIT":
-                    critical_err = "Upstox Rate Limit (429) આવી ગઈ છે. થોડી સેકન્ડ રાહ જુઓ."
-                elif err and str(err).startswith("API_ERROR_"):
-                    critical_err = f"Upstox સર્વર એરર: {err.replace('API_ERROR_', 'કોડ ')}"
-                if res:
-                    raw_results.append(res)
+
+                try:
+
+                    res, err = future.result()
+
+                    if err == "TOKEN_EXPIRED":
+
+                        critical_err = (
+                            "Upstox Token એક્સપાયર થઈ ગયો છે. "
+                            "કૃપા કરીને નવો ટોકન નાખો."
+                        )
+
+                    elif err == "RATE_LIMIT":
+
+                        critical_err = (
+                            "Upstox Rate Limit (429) આવી ગઈ છે. "
+                            "થોડી સેકન્ડ રાહ જુઓ."
+                        )
+
+                    elif err and str(err).startswith(
+                        "API_ERROR_"
+                    ):
+
+                        critical_err = (
+                            "Upstox સર્વર એરર: "
+                            + err.replace(
+                                "API_ERROR_",
+                                "કોડ "
+                            )
+                        )
+
+                    if res:
+                        raw_results.append(res)
+
+                except Exception:
+
+                    continue
 
         if critical_err:
+
             st.error(critical_err)
 
-        raw_results.sort(key=lambda x: x["sort_score"], reverse=True)
+        raw_results.sort(
+            key=lambda x: x["sort_score"],
+            reverse=True
+        )
+
         st.session_state.scan_results = raw_results
 
+
 # =========================================================
-# 8-COLUMN PROPORTIONAL RESULT TABLE
+# RESULT TABLE
 # =========================================================
+
 results = st.session_state.scan_results
 
 table_rows_html = ""
+
 for i in range(max(10, len(results))):
+
     if i < len(results):
+
         r = results[i]
-        date_badge = f"<span class='comp-date'>📅{r['res_date']} {r['delta_display']}</span>" if r['res_date'] else f"<span class='comp-date'>{r['delta_display']}</span>"
+
+        date_badge = (
+            f"<span class='comp-date'>"
+            f"📅{r['res_date']} {r['delta_display']}"
+            f"</span>"
+            if r["res_date"]
+            else
+            f"<span class='comp-date'>"
+            f"{r['delta_display']}"
+            f"</span>"
+        )
+
         table_rows_html += f"""
         <tr>
-            <td class="c-comp"><div class="comp-name">{r['symbol']}</div>{date_badge}</td>
+            <td class="c-comp">
+                <div class="comp-name">{r['symbol']}</div>
+                {date_badge}
+            </td>
+
             <td class="c-col">{r['strk_bs']}</td>
+
             <td class="c-col">{r['pp']}</td>
+
             <td class="c-col highlight-dc">{r['dc']}</td>
+
             <td class="c-col">{r['r1_bs']}</td>
+
             <td class="c-col">{r['r1_pp']}</td>
+
             <td class="c-col">{r['r2_bs']}</td>
+
             <td class="c-col">{r['r2_pp']}</td>
         </tr>
         """
+
     else:
+
         table_rows_html += """
         <tr>
             <td class="c-comp"></td>
@@ -494,15 +1281,42 @@ for i in range(max(10, len(results))):
         </tr>
         """
 
+
+# =========================================================
+# HTML RESULT TABLE
+# =========================================================
+
 full_html = f"""
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
 <style>
-    * {{ box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
-    html, body {{ width: 100%; overflow-x: hidden; background: transparent; }}
-    
+
+    * {{
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        sans-serif;
+    }}
+
+    html, body {{
+        width: 100%;
+        overflow-x: hidden;
+        background: transparent;
+    }}
+
     .excel-container {{
         width: 100%;
         border: 1px solid #94a3b8;
@@ -511,13 +1325,16 @@ full_html = f"""
         overflow: hidden;
         margin-top: 2px;
     }}
+
     .excel-grid {{
         width: 100%;
         border-collapse: collapse;
         font-size: 0.58rem;
         table-layout: fixed;
     }}
-    .excel-grid th, .excel-grid td {{
+
+    .excel-grid th,
+    .excel-grid td {{
         border: 1px solid #cbd5e1;
         padding: 3px 1px;
         text-align: center;
@@ -525,48 +1342,117 @@ full_html = f"""
         text-overflow: ellipsis;
         white-space: nowrap;
     }}
+
     .excel-grid th {{
         background-color: #e2e8f0;
         color: #0f172a;
         font-weight: 700;
         font-size: 0.56rem;
     }}
-    .excel-grid td {{ height: 26px; }}
-    
-    .c-comp {{ width: 23%; text-align: left !important; padding-left: 2px !important; }}
-    .c-col  {{ width: 11%; }}
-    
-    .comp-name {{ font-weight: 700; color: #0f172a; font-size: 0.60rem; line-height: 1.1; }}
-    .comp-date {{ font-size: 0.48rem; color: #0284c7; font-weight: 600; display: block; }}
-    .highlight-dc {{ font-weight: 700; color: #047857; }}
+
+    .excel-grid td {{
+        height: 26px;
+    }}
+
+    .c-comp {{
+        width: 23%;
+        text-align: left !important;
+        padding-left: 2px !important;
+    }}
+
+    .c-col {{
+        width: 11%;
+    }}
+
+    .comp-name {{
+        font-weight: 700;
+        color: #0f172a;
+        font-size: 0.60rem;
+        line-height: 1.1;
+    }}
+
+    .comp-date {{
+        font-size: 0.48rem;
+        color: #0284c7;
+        font-weight: 600;
+        display: block;
+    }}
+
+    .highlight-dc {{
+        font-weight: 700;
+        color: #047857;
+    }}
+
 </style>
+
 </head>
+
 <body>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; font-size:0.68rem; font-weight:700;">
+
+    <div style='display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:2px;
+    font-size:0.68rem;
+    font-weight:700;'>
+
         <span>🎯 Scan Results (Live)</span>
-        <span style="font-size:0.62rem; font-weight:normal; color:#475569;">Total: <b>{len(results)}</b></span>
+
+        <span style='font-size:0.62rem;
+        font-weight:normal;
+        color:#475569;'>
+
+            Total: <b>{len(results)}</b>
+
+        </span>
+
     </div>
+
     <div class="excel-container">
+
         <table class="excel-grid">
+
             <thead>
+
                 <tr>
+
                     <th class="c-comp">Company (Date)</th>
+
                     <th class="c-col">Strk B/S</th>
+
                     <th class="c-col">P/P</th>
+
                     <th class="c-col">D/C</th>
+
                     <th class="c-col">R1 B/S</th>
+
                     <th class="c-col">R1 P/P</th>
+
                     <th class="c-col">R2 B/S</th>
+
                     <th class="c-col">R2 P/P</th>
+
                 </tr>
+
             </thead>
+
             <tbody>
+
                 {table_rows_html}
+
             </tbody>
+
         </table>
+
     </div>
+
 </body>
+
 </html>
 """
 
-components.html(full_html, height=440, scrolling=False)
+components.html(
+    full_html,
+    height=440,
+    scrolling=False
+)
