@@ -1,5 +1,4 @@
 import os
-import re
 import gzip
 import json
 import time
@@ -180,22 +179,21 @@ available_expiries = sorted(universe["expiry"].dropna().unique()) if not univers
 def parse_delta_range(text):
     text = str(text).strip().replace(" ", "")
     if "-" in text:
-        a, b = text.split("-")
-        low, high = float(a), float(b)
+        parts = text.split("-")
+        low, high = float(parts[0]), float(parts[1])
         if high <= 1.0:
-            low *= 100
-            high *= 100
+            low, high = low * 100, high * 100
         return min(low, high), max(low, high)
     val = float(text)
     if val <= 1.0:
-        val *= 100
+        val = val * 100
     return 0.0, val
 
 def parse_amount_range(text):
     text = str(text).strip().replace(",", "")
     if "-" in text:
-        a, b = text.split("-")
-        return float(a), float(b)
+        parts = text.split("-")
+        return float(parts[0]), float(parts[1])
     val = float(text) if text else 5000.0
     return 0.0, val
 
@@ -302,7 +300,6 @@ def scan_stock_pg(item, exp_val, opt_type, delta_low, delta_high, gap_pct, b_qty
         r2_txt = f"{r2_buy_strike:g}/{r2_sell_strike:g}" if (r2_b and r2_s) else "-/-"
         r2_pp = f"{r2_b['ltp']:.2f}/{r2_s['ltp']:.2f}" if (r2_b and r2_s) else "-/-"
 
-        # Best Value Sorting: Credit first (higher profit), Debit later (lower cost)
         sort_score = amount if side == "CREDIT" else (-amount)
 
         return {
@@ -326,7 +323,6 @@ def scan_stock_pg(item, exp_val, opt_type, delta_low, delta_high, gap_pct, b_qty
 # =========================================================
 st.markdown("<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;'><b style='font-size:0.80rem;'>📊 Project A Pro</b><span style='font-size:0.62rem;color:green;'>🟢 Live</span></div>", unsafe_allow_html=True)
 
-# Row 1: 5 Filters
 f1, f2, f3, f4, f5 = st.columns([1.1, 0.9, 0.8, 1.1, 0.9])
 with f1:
     delta_in = st.text_input("Delta", "0.10 - 0.25")
@@ -339,14 +335,12 @@ with f4:
 with f5:
     res_profit_in = st.text_input("Result(₹)", "0")
 
-# Row 2: Debit & Credit Cost
 sc1, sc2 = st.columns(2)
 with sc1:
     deb_in = st.text_input("Debit Cost(₹)", "0 - 5000")
 with sc2:
     cred_in = st.text_input("Credit Cost(₹)", "0 - 5000")
 
-# Row 3: 3 Module Cards
 m1, m2, m3 = st.columns(3)
 with m1:
     st.markdown("<div style='background:#f0fdf4;padding:3px;border-radius:4px;border:1px solid #bbf7d0;font-size:0.60rem;font-weight:700;text-align:center;'>1. Debit ₹0<br><span style='font-size:0.50rem;font-weight:normal;color:gray;'>Pending</span></div>", unsafe_allow_html=True)
