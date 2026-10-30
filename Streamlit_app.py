@@ -244,7 +244,8 @@ mobile_ui_html = """
         border-collapse: collapse;
         font-size: 0.70rem;
         white-space: nowrap;
-        min-width: 780px;
+        width: 1020px; /* Explicit width to guarantee all 10 columns render */
+        min-width: 1020px;
         table-layout: fixed;
     }
     .excel-grid th {
@@ -253,7 +254,7 @@ mobile_ui_html = """
         text-align: center;
     }
     .excel-grid td {
-        border: 1px solid #e2e8f0;
+        border: 1px solid #cbd5e1;
         height: 28px;
         padding: 2px 6px;
         text-align: center;
@@ -270,22 +271,23 @@ mobile_ui_html = """
         font-weight: 600;
     }
     
-    /* Fixed Column Widths for Consistent Layout */
-    .col-a { width: 34px; }
-    .col-b { width: 140px; text-align: left !important; }
-    .col-c { width: 95px; }
-    .col-d { width: 85px; }
-    .col-e { width: 95px; }
-    .col-f { width: 85px; }
-    .col-g { width: 80px; }
-    .col-h { width: 95px; }
-    .col-i { width: 85px; }
-    .col-j { width: 80px; }
+    /* Fixed Column Widths for Consistent A to J Layout */
+    .col-a { width: 40px; }
+    .col-b { width: 170px; text-align: left !important; }
+    .col-c { width: 105px; }
+    .col-d { width: 95px; }
+    .col-e { width: 120px; }
+    .col-f { width: 105px; }
+    .col-g { width: 95px; }
+    .col-h { width: 120px; }
+    .col-i { width: 105px; }
+    .col-j { width: 95px; }
 
     .row-index {
         background-color: #f1f5f9;
         font-weight: 700;
         color: #64748b;
+        text-align: center !important;
     }
     .comp-cell {
         text-align: left !important;
@@ -407,7 +409,7 @@ mobile_ui_html = """
         </div>
     </div>
 
-    <!-- Excel Table (Single # Column & Consistent Row Layout up to Column J) -->
+    <!-- Excel Table (Full A to J Grid Structure) -->
     <div class="excel-scroll">
         <table class="excel-grid">
             <thead>
