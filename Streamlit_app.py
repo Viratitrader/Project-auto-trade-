@@ -8,13 +8,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Safe token access
+# Safe secrets / environment token handling
 try:
     secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
 except Exception:
     secret_token = os.environ.get("UPSTOX_ACCESS_TOKEN", "")
 
-# Streamlit native reset
+# Streamlit native padding zero
 st.markdown("""
 <style>
     .block-container {
@@ -71,7 +71,7 @@ mobile_ui_html = """
     /* Filters Grid (Row 1) */
     .filter-grid {
         display: grid;
-        grid-template-columns: 1fr 0.9fr 1fr 1.1fr 0.9fr;
+        grid-template-columns: 1.15fr 0.85fr 1fr 1.1fr 0.9fr;
         gap: 5px;
         margin-bottom: 8px;
     }
@@ -83,7 +83,7 @@ mobile_ui_html = """
         border: 1px solid #cbd5e1;
         border-radius: 4px;
         padding: 0 4px;
-        font-size: 0.75rem;
+        font-size: 0.73rem;
         background-color: #f8fafc;
         outline: none;
     }
@@ -140,7 +140,7 @@ mobile_ui_html = """
         background: transparent;
     }
 
-    /* 3 Scanner Modules (Horizontal Layout) */
+    /* 3 Scanner Modules Side-by-Side */
     .modules-container {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
@@ -245,6 +245,7 @@ mobile_ui_html = """
         font-size: 0.70rem;
         white-space: nowrap;
         min-width: 780px;
+        table-layout: fixed;
     }
     .excel-grid th {
         border: 1px solid #cbd5e1;
@@ -253,7 +254,7 @@ mobile_ui_html = """
     }
     .excel-grid td {
         border: 1px solid #e2e8f0;
-        height: 26px;
+        height: 28px;
         padding: 2px 6px;
         text-align: center;
     }
@@ -268,11 +269,23 @@ mobile_ui_html = """
         color: #1e293b;
         font-weight: 600;
     }
+    
+    /* Fixed Column Widths for Consistent Layout */
+    .col-a { width: 34px; }
+    .col-b { width: 140px; text-align: left !important; }
+    .col-c { width: 95px; }
+    .col-d { width: 85px; }
+    .col-e { width: 95px; }
+    .col-f { width: 85px; }
+    .col-g { width: 80px; }
+    .col-h { width: 95px; }
+    .col-i { width: 85px; }
+    .col-j { width: 80px; }
+
     .row-index {
         background-color: #f1f5f9;
         font-weight: 700;
         color: #64748b;
-        width: 26px;
     }
     .comp-cell {
         text-align: left !important;
@@ -297,10 +310,10 @@ mobile_ui_html = """
 
     <!-- Filters Row 1 -->
     <div class="filter-grid">
-        <!-- Delta Input Box -->
+        <!-- Delta Open Range Box -->
         <div class="field-wrap">
             <span class="field-title">Delta</span>
-            <input type="number" step="0.01" min="0.05" max="0.90" class="custom-input" value="0.20" inputmode="decimal">
+            <input type="text" class="custom-input" placeholder="0.10 - 0.25" value="0.10 - 0.25">
         </div>
         <!-- Ratio Dropdown with Custom Specified Options -->
         <div class="field-wrap">
@@ -362,7 +375,7 @@ mobile_ui_html = """
             </div>
         </div>
 
-        <!-- 2. % Gap Module with Numeric Input -->
+        <!-- 2. % Gap Module -->
         <div class="module-card mod-gap">
             <div class="module-heading">2. % Gap</div>
             <div class="btn-row">
@@ -373,7 +386,7 @@ mobile_ui_html = """
             </div>
         </div>
 
-        <!-- 3. Spike Module with Numeric Input -->
+        <!-- 3. Spike Module -->
         <div class="module-card mod-spike">
             <div class="module-heading">3. Spike UP/DN</div>
             <div class="btn-row">
@@ -394,26 +407,33 @@ mobile_ui_html = """
         </div>
     </div>
 
-    <!-- Excel Table (Company includes Result Date) -->
+    <!-- Excel Table (Single # Column & Consistent Row Layout up to Column J) -->
     <div class="excel-scroll">
         <table class="excel-grid">
             <thead>
                 <tr class="col-letter">
-                    <th class="row-index"></th>
-                    <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th>
+                    <th class="col-a">A</th>
+                    <th class="col-b">B</th>
+                    <th class="col-c">C</th>
+                    <th class="col-d">D</th>
+                    <th class="col-e">E</th>
+                    <th class="col-f">F</th>
+                    <th class="col-g">G</th>
+                    <th class="col-h">H</th>
+                    <th class="col-i">I</th>
+                    <th class="col-j">J</th>
                 </tr>
                 <tr class="col-title">
-                    <th class="row-index">#</th>
-                    <th>#</th>
-                    <th>Company (Result Date)</th>
-                    <th>strike buy/sale</th>
-                    <th>price/ price</th>
-                    <th>R1 buystrike / sale</th>
-                    <th>R1 (price/ price)</th>
-                    <th>R1 (profit)</th>
-                    <th>R2 buystrike / sale</th>
-                    <th>R2 (price/ price)</th>
-                    <th>R2 (profit)</th>
+                    <th class="col-a row-index">#</th>
+                    <th class="col-b">Company (Result Date)</th>
+                    <th class="col-c">strike buy/sale</th>
+                    <th class="col-d">price/ price</th>
+                    <th class="col-e">R1 buystrike / sale</th>
+                    <th class="col-f">R1 (price/ price)</th>
+                    <th class="col-g">R1 (profit)</th>
+                    <th class="col-h">R2 buystrike / sale</th>
+                    <th class="col-i">R2 (price/ price)</th>
+                    <th class="col-j">R2 (profit)</th>
                 </tr>
             </thead>
             <tbody>
@@ -436,10 +456,16 @@ for i in range(1, 15):
 
     mobile_ui_html += f"""
                 <tr>
-                    <td class="row-index">{i}</td>
-                    <td>{i if comp_display else ""}</td>
-                    <td class="comp-cell">{comp_display}</td>
-                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    <td class="col-a row-index">{i}</td>
+                    <td class="col-b comp-cell">{comp_display}</td>
+                    <td class="col-c"></td>
+                    <td class="col-d"></td>
+                    <td class="col-e"></td>
+                    <td class="col-f"></td>
+                    <td class="col-g"></td>
+                    <td class="col-h"></td>
+                    <td class="col-i"></td>
+                    <td class="col-j"></td>
                 </tr>
     """
 
