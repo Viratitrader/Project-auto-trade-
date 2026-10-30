@@ -8,13 +8,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Safe secrets / environment token handling
-try:
-    secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
-except Exception:
-    secret_token = os.environ.get("UPSTOX_ACCESS_TOKEN", "")
-
-# Streamlit native padding zero
+# Streamlit native reset
 st.markdown("""
 <style>
     .block-container {
@@ -34,26 +28,32 @@ mobile_ui_html = """
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #ffffff; color: #0f172a; padding: 8px 10px; overflow-x: hidden; }
+    html, body {
+        background-color: #ffffff;
+        color: #0f172a;
+        padding: 6px;
+        width: 100%;
+        overflow-x: hidden;
+    }
 
-    /* Top Brand Bar */
+    /* Top Bar */
     .header-bar {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
     .brand-title {
-        font-size: 1.15rem;
+        font-size: 1.10rem;
         font-weight: 800;
         color: #0f172a;
         display: flex;
         align-items: center;
         gap: 4px;
     }
-    .brand-sub { font-size: 0.72rem; color: #64748b; margin-top: 1px; }
+    .brand-sub { font-size: 0.70rem; color: #64748b; margin-top: 1px; }
     .status-text {
-        font-size: 0.70rem;
+        font-size: 0.68rem;
         color: #334155;
         display: flex;
         align-items: center;
@@ -61,29 +61,29 @@ mobile_ui_html = """
         white-space: nowrap;
     }
     .status-dot {
-        width: 8px;
-        height: 8px;
+        width: 7px;
+        height: 7px;
         background-color: #22c55e;
         border-radius: 50%;
         display: inline-block;
     }
 
-    /* Filters Grid (Row 1) */
+    /* Row 1 - Filters */
     .filter-grid {
         display: grid;
         grid-template-columns: 1.15fr 0.85fr 1fr 1.1fr 0.9fr;
-        gap: 5px;
-        margin-bottom: 8px;
+        gap: 4px;
+        margin-bottom: 6px;
     }
     .field-wrap { display: flex; flex-direction: column; }
-    .field-title { font-size: 0.72rem; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
+    .field-title { font-size: 0.68rem; font-weight: 600; color: #1e293b; margin-bottom: 2px; }
     .custom-select, .custom-input {
         width: 100%;
-        height: 30px;
+        height: 28px;
         border: 1px solid #cbd5e1;
         border-radius: 4px;
-        padding: 0 4px;
-        font-size: 0.73rem;
+        padding: 0 2px;
+        font-size: 0.70rem;
         background-color: #f8fafc;
         outline: none;
     }
@@ -92,22 +92,22 @@ mobile_ui_html = """
         text-align: center;
         font-weight: 500;
     }
-    .result-sub { font-size: 0.65rem; color: #64748b; text-align: center; margin-top: 1px; }
+    .result-sub { font-size: 0.62rem; color: #64748b; text-align: center; margin-top: 1px; }
 
-    /* Spread Cost (Row 2) */
-    .cost-title { font-size: 0.74rem; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    /* Row 2 - Spread Cost */
+    .cost-title { font-size: 0.70rem; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
     .spread-row {
         display: flex;
-        gap: 8px;
-        margin-bottom: 10px;
+        gap: 6px;
+        margin-bottom: 8px;
     }
     .cost-box {
         flex: 1;
         display: flex;
         align-items: center;
         border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        height: 32px;
+        border-radius: 5px;
+        height: 30px;
         overflow: hidden;
         background: #ffffff;
     }
@@ -115,8 +115,8 @@ mobile_ui_html = """
         background-color: #0284c7;
         color: white;
         font-weight: 700;
-        font-size: 0.75rem;
-        padding: 0 10px;
+        font-size: 0.72rem;
+        padding: 0 8px;
         height: 100%;
         display: flex;
         align-items: center;
@@ -125,8 +125,8 @@ mobile_ui_html = """
         background-color: #ef4444;
         color: white;
         font-weight: 700;
-        font-size: 0.75rem;
-        padding: 0 10px;
+        font-size: 0.72rem;
+        padding: 0 8px;
         height: 100%;
         display: flex;
         align-items: center;
@@ -134,22 +134,22 @@ mobile_ui_html = """
     .cost-input-field {
         border: none;
         outline: none;
-        font-size: 0.76rem;
-        padding: 0 8px;
+        font-size: 0.72rem;
+        padding: 0 6px;
         width: 100%;
         background: transparent;
     }
 
-    /* 3 Scanner Modules Side-by-Side */
+    /* 3 Scanner Modules */
     .modules-container {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 6px;
-        margin-bottom: 10px;
+        gap: 5px;
+        margin-bottom: 8px;
     }
     .module-card {
-        border-radius: 6px;
-        padding: 6px;
+        border-radius: 5px;
+        padding: 5px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -159,24 +159,24 @@ mobile_ui_html = """
     .mod-spike { background-color: #fefce8; border: 1px solid #fef08a; }
 
     .module-heading {
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: 700;
         color: #0f172a;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         line-height: 1.1;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    .btn-row { display: flex; align-items: center; gap: 3px; }
+    .btn-row { display: flex; align-items: center; gap: 2px; }
     
     .btn-opt {
         flex: 1;
-        height: 24px;
+        height: 22px;
         border: 1px solid #cbd5e1;
         background: #ffffff;
-        border-radius: 4px;
-        font-size: 0.68rem;
+        border-radius: 3px;
+        font-size: 0.65rem;
         font-weight: 600;
         color: #0f172a;
         display: flex;
@@ -190,111 +190,90 @@ mobile_ui_html = """
         color: #ffffff;
     }
     .num-box {
-        width: 28px;
-        height: 24px;
+        width: 25px;
+        height: 22px;
         border: 1px solid #cbd5e1;
-        border-radius: 4px;
+        border-radius: 3px;
         text-align: center;
-        font-size: 0.70rem;
+        font-size: 0.66rem;
         background: #ffffff;
         outline: none;
         padding: 0;
     }
-    .unit-symbol { font-size: 0.68rem; font-weight: bold; }
+    .unit-symbol { font-size: 0.65rem; font-weight: bold; }
 
-    /* Results Header Bar */
+    /* Results Header */
     .results-head {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin: 6px 0 6px 0;
+        margin: 4px 0 5px 0;
     }
     .results-left {
         display: flex;
         align-items: center;
-        gap: 4px;
-        font-size: 0.82rem;
+        gap: 3px;
+        font-size: 0.78rem;
         font-weight: 700;
     }
     .results-right {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
     }
-    .total-counter { font-size: 0.70rem; color: #334155; }
+    .total-counter { font-size: 0.66rem; color: #334155; }
     .table-search {
-        height: 24px;
-        width: 85px;
+        height: 22px;
+        width: 75px;
         border: 1px solid #cbd5e1;
-        border-radius: 4px;
-        font-size: 0.68rem;
-        padding: 0 4px;
+        border-radius: 3px;
+        font-size: 0.65rem;
+        padding: 0 3px;
         outline: none;
     }
 
-    /* Excel Scroll Container */
-    .excel-scroll {
+    /* Fixed Screen Table (NO A/B/C, NO 1/2/3, 100% Fit) */
+    .excel-container {
         width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid #cbd5e1;
+        overflow: hidden;
+        border: 1px solid #94a3b8;
         background: #ffffff;
+        border-radius: 4px;
     }
     .excel-grid {
+        width: 100%;
         border-collapse: collapse;
-        font-size: 0.70rem;
-        white-space: nowrap;
-        width: 1020px; /* Explicit width to guarantee all 10 columns render */
-        min-width: 1020px;
+        font-size: 0.62rem;
         table-layout: fixed;
     }
-    .excel-grid th {
+    .excel-grid th, .excel-grid td {
         border: 1px solid #cbd5e1;
-        padding: 4px 6px;
+        padding: 3px 2px;
         text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .excel-grid td {
-        border: 1px solid #cbd5e1;
         height: 28px;
-        padding: 2px 6px;
-        text-align: center;
-    }
-    .col-letter th {
-        background-color: #cbd5e1;
-        color: #475569;
-        font-weight: bold;
-        font-size: 0.68rem;
     }
     .col-title th {
         background-color: #e2e8f0;
-        color: #1e293b;
-        font-weight: 600;
+        color: #0f172a;
+        font-weight: 700;
+        font-size: 0.60rem;
+        line-height: 1.1;
     }
     
-    /* Fixed Column Widths for Consistent A to J Layout */
-    .col-a { width: 40px; }
-    .col-b { width: 170px; text-align: left !important; }
-    .col-c { width: 105px; }
-    .col-d { width: 95px; }
-    .col-e { width: 120px; }
-    .col-f { width: 105px; }
-    .col-g { width: 95px; }
-    .col-h { width: 120px; }
-    .col-i { width: 105px; }
-    .col-j { width: 95px; }
+    /* Column Widths (9 Main Columns Totaling 100%) */
+    .c-comp { width: 24%; text-align: left !important; padding-left: 4px !important; }
+    .c-col  { width: 9.5%; }
 
-    .row-index {
-        background-color: #f1f5f9;
-        font-weight: 700;
-        color: #64748b;
-        text-align: center !important;
-    }
     .comp-cell {
-        text-align: left !important;
         line-height: 1.15;
     }
-    .comp-name { font-weight: 700; color: #0f172a; }
-    .comp-date { font-size: 0.64rem; color: #0284c7; font-weight: 600; display: block; }
+    .comp-name { font-weight: 700; color: #0f172a; font-size: 0.64rem; }
+    .comp-date { font-size: 0.54rem; color: #0284c7; font-weight: 600; display: block; }
 </style>
 </head>
 <body>
@@ -306,18 +285,16 @@ mobile_ui_html = """
             <div class="brand-sub">Options Ratio Spread Scanner</div>
         </div>
         <div class="status-text">
-            <span class="status-dot"></span> <b>Live Scan</b> &nbsp; <code>06 Oct 2026 12:30:15</code> 🔄
+            <span class="status-dot"></span> <b>Live Scan</b> &nbsp; <code>06 Oct 2026</code> 🔄
         </div>
     </div>
 
     <!-- Filters Row 1 -->
     <div class="filter-grid">
-        <!-- Delta Open Range Box -->
         <div class="field-wrap">
             <span class="field-title">Delta</span>
             <input type="text" class="custom-input" placeholder="0.10 - 0.25" value="0.10 - 0.25">
         </div>
-        <!-- Ratio Dropdown with Custom Specified Options -->
         <div class="field-wrap">
             <span class="field-title">Ratio</span>
             <select class="custom-select">
@@ -327,7 +304,6 @@ mobile_ui_html = """
                 <option value="2:7">2:7</option>
             </select>
         </div>
-        <!-- Option Type Dropdown -->
         <div class="field-wrap">
             <span class="field-title">Option Type</span>
             <select class="custom-select">
@@ -335,16 +311,14 @@ mobile_ui_html = """
                 <option value="PE">PE (Put)</option>
             </select>
         </div>
-        <!-- Expiry Dropdown -->
         <div class="field-wrap">
             <span class="field-title">Expiry</span>
             <select class="custom-select">
-                <option>26 Sep 2026</option>
-                <option>06 Oct 2026</option>
-                <option>29 Oct 2026</option>
+                <option>26 Sep</option>
+                <option>06 Oct</option>
+                <option>29 Oct</option>
             </select>
         </div>
-        <!-- Result Input Box -->
         <div class="field-wrap">
             <span class="field-title">Result</span>
             <input type="text" class="custom-input" value="0" inputmode="numeric">
@@ -357,17 +331,16 @@ mobile_ui_html = """
     <div class="spread-row">
         <div class="cost-box">
             <div class="badge-debit">Debit</div>
-            <input type="text" class="cost-input-field" value="0 - 5000" inputmode="numeric" placeholder="Enter debit...">
+            <input type="text" class="cost-input-field" value="0 - 5000" inputmode="numeric">
         </div>
         <div class="cost-box">
             <div class="badge-credit">Credit</div>
-            <input type="text" class="cost-input-field" value="0 - 5000" inputmode="numeric" placeholder="Enter credit...">
+            <input type="text" class="cost-input-field" value="0 - 5000" inputmode="numeric">
         </div>
     </div>
 
-    <!-- 3 Scanner Modules Side-by-Side -->
+    <!-- 3 Scanner Modules -->
     <div class="modules-container">
-        <!-- 1. Debit Module -->
         <div class="module-card mod-debit">
             <div class="module-heading">1. Debit ₹0</div>
             <div class="btn-row">
@@ -377,7 +350,6 @@ mobile_ui_html = """
             </div>
         </div>
 
-        <!-- 2. % Gap Module -->
         <div class="module-card mod-gap">
             <div class="module-heading">2. % Gap</div>
             <div class="btn-row">
@@ -388,7 +360,6 @@ mobile_ui_html = """
             </div>
         </div>
 
-        <!-- 3. Spike Module -->
         <div class="module-card mod-spike">
             <div class="module-heading">3. Spike UP/DN</div>
             <div class="btn-row">
@@ -409,65 +380,51 @@ mobile_ui_html = """
         </div>
     </div>
 
-    <!-- Excel Table (Full A to J Grid Structure) -->
-    <div class="excel-scroll">
+    <!-- Direct Clean Data Table -->
+    <div class="excel-container">
         <table class="excel-grid">
             <thead>
-                <tr class="col-letter">
-                    <th class="col-a">A</th>
-                    <th class="col-b">B</th>
-                    <th class="col-c">C</th>
-                    <th class="col-d">D</th>
-                    <th class="col-e">E</th>
-                    <th class="col-f">F</th>
-                    <th class="col-g">G</th>
-                    <th class="col-h">H</th>
-                    <th class="col-i">I</th>
-                    <th class="col-j">J</th>
-                </tr>
                 <tr class="col-title">
-                    <th class="col-a row-index">#</th>
-                    <th class="col-b">Company (Result Date)</th>
-                    <th class="col-c">strike buy/sale</th>
-                    <th class="col-d">price/ price</th>
-                    <th class="col-e">R1 buystrike / sale</th>
-                    <th class="col-f">R1 (price/ price)</th>
-                    <th class="col-g">R1 (profit)</th>
-                    <th class="col-h">R2 buystrike / sale</th>
-                    <th class="col-i">R2 (price/ price)</th>
-                    <th class="col-j">R2 (profit)</th>
+                    <th class="c-comp">Company (Date)</th>
+                    <th class="c-col">Strk B/S</th>
+                    <th class="c-col">P/P</th>
+                    <th class="c-col">R1 B/S</th>
+                    <th class="c-col">R1 P/P</th>
+                    <th class="c-col">R1 Pft</th>
+                    <th class="c-col">R2 B/S</th>
+                    <th class="c-col">R2 P/P</th>
+                    <th class="c-col">R2 Pft</th>
                 </tr>
             </thead>
             <tbody>
 """
 
 sample_stocks = [
-    ("RELIANCE", "Δ 0.22", "06 Oct 2026"),
-    ("TCS", "Δ 0.21", "06 Oct 2026"),
-    ("INFY", "Δ 0.23", "08 Oct 2026"),
-    ("HDFCBANK", "Δ 0.24", "12 Oct 2026"),
-    ("ICICIBANK", "Δ 0.21", "14 Oct 2026"),
+    ("RELIANCE", "Δ 0.22", "06 Oct"),
+    ("TCS", "Δ 0.21", "06 Oct"),
+    ("INFY", "Δ 0.23", "08 Oct"),
+    ("HDFCBANK", "Δ 0.24", "12 Oct"),
+    ("ICICIBANK", "Δ 0.21", "14 Oct"),
 ]
 
-for i in range(1, 15):
+for i in range(1, 14):
     if i <= len(sample_stocks):
         comp, delta, rdate = sample_stocks[i - 1]
-        comp_display = f"<div class='comp-name'>{comp} <small style='color:#64748b;'>({delta})</small></div><span class='comp-date'>📅 {rdate}</span>"
+        comp_display = f"<div class='comp-name'>{comp}</div><span class='comp-date'>📅 {rdate} ({delta})</span>"
     else:
         comp_display = ""
 
     mobile_ui_html += f"""
                 <tr>
-                    <td class="col-a row-index">{i}</td>
-                    <td class="col-b comp-cell">{comp_display}</td>
-                    <td class="col-c"></td>
-                    <td class="col-d"></td>
-                    <td class="col-e"></td>
-                    <td class="col-f"></td>
-                    <td class="col-g"></td>
-                    <td class="col-h"></td>
-                    <td class="col-i"></td>
-                    <td class="col-j"></td>
+                    <td class="c-comp comp-cell">{comp_display}</td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
+                    <td class="c-col"></td>
                 </tr>
     """
 
