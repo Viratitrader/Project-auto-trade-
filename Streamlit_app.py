@@ -90,13 +90,12 @@ st.markdown("""
 # =========================================================
 # CONSTANTS & SAFE UPSTOX AUTH (RENDER COMPATIBLE)
 # =========================================================
-OPTION_CHAIN_URL = "https://api.upstox.com/v2/option/chain[span_2](start_span)"[span_2](end_span)
+OPTION_CHAIN_URL = "https://api.upstox.com/v2/option/chain"
 INSTRUMENT_URLS = [
-    "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz",[span_3](start_span)[span_3](end_span)
-    "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz[span_4](start_span)"[span_4](end_span)
+    "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz",
+    "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz"
 ]
-TODAY = date.today()[span_5](start_span)[span_5](end_span)
-
+TODAY = date.today()
 access_token = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
 
 if not access_token:
