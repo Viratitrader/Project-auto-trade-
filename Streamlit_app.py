@@ -1,523 +1,297 @@
+import os
+import time
+import datetime
 import streamlit as st
-import requests
-import gzip
-import json
-import re
-import pandas as pd
-from datetime import datetime, date, time
-from zoneinfo import ZoneInfo
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import time as time_lib
 
-# =========================================================
-# PAGE CONFIGURATION & MOBILE FRIENDLY CSS
-# =========================================================
 st.set_page_config(
     page_title="Project A Pro - Options Ratio Spread Scanner",
-    page_icon="📊",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
+
+# Safe secrets handling (Never crashes if secrets.toml is missing)
+try:
+    secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
+except Exception:
+    secret_token = os.environ.get("UPSTOX_ACCESS_TOKEN", "")
 
 st.markdown("""
 <style>
-.block-container {
-    padding-top: 0.4rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    max-width: 650px;
-}
-.header-box {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-.header-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #111;
-    margin: 0;
-}
-.header-sub {
-    font-size: 0.75rem;
-    color: #555;
-    margin: 0;
-}
-.live-pill {
-    background: #e6f4ea;
-    color: #137333;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-size: 0.72rem;
-    font-weight: bold;
-}
-.time-box {
-    font-size: 0.75rem;
-    background: #f1f3f4;
-    padding: 3px 6px;
-    border-radius: 5px;
-    font-weight: 600;
-}
+    .block-container {
+        padding-top: 0.8rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+        max-width: 100% !important;
+    }
+    
+    /* Top Header Bar */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .logo-title { font-size: 1.35rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+    .sub-title { font-size: 0.8rem; color: #64748b; margin: 0; }
+    
+    /* Filter Badges & Labels */
+    .filter-label { font-size: 0.8rem; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
+    .sub-caption { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+    
+    .cost-badge-debit {
+        background-color: #0284c7;
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 5px 12px;
+        border-radius: 4px 0 0 4px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .cost-badge-credit {
+        background-color: #ef4444;
+        color: white;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 5px 12px;
+        border-radius: 4px 0 0 4px;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    /* Modules Cards */
+    .card-mod-1 {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+    }
+    .card-mod-2 {
+        background: #fff1f2;
+        border: 1px solid #fecdd3;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+    }
+    .card-mod-3 {
+        background: #fefce8;
+        border: 1px solid #fef08a;
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+    }
+    .mod-title { font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
 
-/* CARDS EXACT MATCH TO SCREENSHOT */
-.scanner-card-1 {
-    background: #eafaf1;
-    border: 1px solid #b7ebd0;
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-}
-.scanner-card-2 {
-    background: #fdebee;
-    border: 1px solid #f9c5cb;
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-}
-.scanner-card-3 {
-    background: #fef8e7;
-    border: 1px solid #fde7b2;
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-}
-.card-header {
-    font-size: 0.9rem;
-    font-weight: 800;
-    margin-bottom: 6px;
-    color: #111;
-}
-
-/* COMPACT INPUT LABELS */
-div[data-testid="stTextInput"] label, div[data-testid="stSelectbox"] label {
-    font-size: 0.78rem !important;
-    font-weight: 700 !important;
-    margin-bottom: 1px !important;
-}
-.stButton button {
-    height: 38px;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 6px;
-}
+    /* Excel-Style Table */
+    .excel-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #cbd5e1;
+        margin-top: 6px;
+    }
+    .excel-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 0.78rem;
+        min-width: 880px;
+    }
+    .excel-table th {
+        background-color: #e2e8f0;
+        color: #334155;
+        font-weight: 600;
+        border: 1px solid #cbd5e1;
+        padding: 5px 4px;
+        text-align: center;
+    }
+    .col-letter-header {
+        background-color: #cbd5e1 !important;
+        color: #475569 !important;
+        font-weight: bold;
+        font-size: 0.72rem;
+    }
+    .excel-table td {
+        border: 1px solid #e2e8f0;
+        padding: 6px 4px;
+        text-align: center;
+        background-color: #ffffff;
+    }
+    .row-num {
+        background-color: #f1f5f9 !important;
+        font-weight: 600;
+        color: #64748b;
+        width: 32px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# =========================================================
-# CONSTANTS & TIME HANDLING
-# =========================================================
-OPTION_CHAIN_URL = "https://api.upstox.com/v2/option/chain"
-INSTRUMENT_URLS = [
-    "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz",
-    "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz"
-]
+# Session state
+if "auto_scan" not in st.session_state:
+    st.session_state.auto_scan = False
 
-ist = ZoneInfo("Asia/Kolkata")
-current_now = datetime.now(ist)
-TODAY = current_now.date()
-current_timestamp_str = current_now.strftime("%d %b %Y %H:%M:%S")
-
-# =========================================================
-# UPSTOX ACCESS TOKEN
-# =========================================================
-secret_token = st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
-if secret_token:
-    access_token = str(secret_token).strip()
-else:
-    if "upstox_access_token" not in st.session_state:
-        st.session_state.upstox_access_token = ""
-    token_input = st.text_input("Upstox Access Token", type="password", key="upstox_token_input")
-    if token_input.strip():
-        st.session_state.upstox_access_token = token_input.strip()
-    access_token = st.session_state.get("upstox_access_token", "")
-
-# =========================================================
-# F&O BAN LIST & RESULT CALENDAR (ROBUST ENGINE)
-# =========================================================
-@st.cache_data(ttl=1800)
-def get_ban_and_result_calendar():
-    # Placeholder for live F&O ban checks & events
-    # Easily expandable via API or local cache
-    ban_symbols = set()
-    result_dates = {}
-    return ban_symbols, result_dates
-
-BAN_SYMBOLS, RESULT_DATES = get_ban_and_result_calendar()
-
-# =========================================================
-# INSTRUMENTS & UNIVERSE LOADER
-# =========================================================
-@st.cache_data(ttl=3600)
-def load_instruments():
-    for url in INSTRUMENT_URLS:
-        try:
-            res = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-            res.raise_for_status()
-            raw = gzip.decompress(res.content)
-            data = json.loads(raw.decode("utf-8"))
-            if isinstance(data, dict):
-                data = data.get("data", list(data.values()))
-            df = pd.DataFrame(data)
-            if not df.empty:
-                return df
-        except Exception:
-            continue
-    return pd.DataFrame()
-
-@st.cache_data(ttl=3600)
-def build_universe():
-    df = load_instruments()
-    if df.empty:
-        return pd.DataFrame()
-    df = df[
-        (df["segment"].astype(str) == "NSE_FO") &
-        (df["underlying_type"].astype(str) == "EQUITY") &
-        (df["underlying_key"].astype(str).str.startswith("NSE_EQ|"))
-    ].copy()
-
-    numeric_expiry = pd.to_numeric(df["expiry"], errors="coerce")
-    text_expiry = pd.to_datetime(df["expiry"], errors="coerce")
-    timestamp_expiry = pd.to_datetime(numeric_expiry, unit="ms", errors="coerce")
-    df["expiry_dt"] = text_expiry
-    mask = numeric_expiry.notna()
-    df.loc[mask, "expiry_dt"] = timestamp_expiry[mask]
-    df["expiry"] = df["expiry_dt"].dt.date
-    df["lot_size"] = pd.to_numeric(df["lot_size"], errors="coerce")
-
-    df = df[df["expiry"].notna() & (df["expiry"] >= TODAY) & (df["lot_size"] > 0)].copy()
-    symbol_col = "underlying_symbol" if "underlying_symbol" in df.columns else ("trading_symbol" if "trading_symbol" in df.columns else None)
-
-    if symbol_col:
-        universe = df[["underlying_key", symbol_col, "expiry", "lot_size"]].drop_duplicates().copy()
-        universe["symbol"] = universe[symbol_col].astype(str).str.strip()
-    else:
-        universe = df[["underlying_key", "expiry", "lot_size"]].drop_duplicates().copy()
-        universe["symbol"] = universe["underlying_key"].astype(str).str.replace("NSE_EQ|", "", regex=False)
-    return universe
-
-universe = build_universe()
-
-# =========================================================
-# API OPTION CHAIN CALL
-# =========================================================
-def get_option_chain(underlying_key, expiry_date, token):
-    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
-    params = {"instrument_key": underlying_key, "expiry_date": expiry_date.isoformat()}
-    try:
-        res = requests.get(OPTION_CHAIN_URL, params=params, headers=headers, timeout=12)
-        if res.status_code == 200:
-            data = res.json().get("data", [])
-            return data if isinstance(data, list) else []
-    except Exception:
-        pass
-    return []
-
-def extract_options(chain, side="CE"):
-    opts = []
-    key = "call_options" if side == "CE" else "put_options"
-    for row in chain:
-        try:
-            strike = float(row.get("strike_price", 0) or 0)
-            data = row.get(key, {}) or {}
-            m = data.get("market_data", {}) or {}
-            g = data.get("option_greeks", {}) or {}
-            ltp = float(m.get("ltp", 0) or 0)
-            delta = float(g.get("delta", 0) or 0)
-            vol = float(m.get("volume", 0) or 0)
-            spot = float(row.get("underlying_spot_price", 0) or 0)
-            if strike > 0 and ltp > 0:
-                opts.append({
-                    "strike": strike, "ltp": ltp, "delta": delta,
-                    "volume": vol, "spot": spot
-                })
-        except Exception:
-            continue
-    opts.sort(key=lambda x: x["strike"])
-    return opts
-
-# =========================================================
-# HEADER DISPLAY
-# =========================================================
-h1, h2 = st.columns([5.6, 4.4])
+# ----------------- TOP HEADER -----------------
+h1, h2 = st.columns([3, 1.8])
 with h1:
-    st.markdown('<p class="header-title">📊 Project A Pro</p>', unsafe_allow_html=True)
-    st.markdown('<p class="header-sub">Options Ratio Spread Scanner</p>', unsafe_allow_html=True)
+    st.markdown("""
+        <div class="logo-title">📊 Project A Pro</div>
+        <div class="sub-title">Options Ratio Spread Scanner</div>
+    """, unsafe_allow_html=True)
 with h2:
-    st.markdown(
-        f'<div style="text-align:right;">'
-        f'<span class="live-pill">● Live Scan</span> '
-        f'<span class="time-box">{current_timestamp_str}</span>'
-        f'</div>', 
-        unsafe_allow_html=True
-    )
+    status_icon = "🟢" if st.session_state.auto_scan else "⚪"
+    status_name = "Live Scan" if st.session_state.auto_scan else "Manual Mode"
+    st.markdown(f"<div style='text-align:right; font-size:0.82rem;'>{status_icon} <b>{status_name}</b> &nbsp; <code>06 Oct 2026 12:30:15</code> 🔄</div>", unsafe_allow_html=True)
 
 st.write("")
 
-# =========================================================
-# 5 TOP INPUT CONTROLS
-# =========================================================
-p1, p2, p3, p4, p5 = st.columns(5)
-with p1:
-    top_delta = st.text_input("Delta", value="20-25", key="top_delta_inp")
-with p2:
-    top_ratio = st.selectbox("Ratio", ["1:3", "3:10", "1:4", "2:7"], key="top_ratio_inp")
-with p3:
-    top_side = st.selectbox("Option Type", ["CE", "PE"], key="top_side_inp")
-with p4:
-    avail_expiries = sorted(universe["expiry"].dropna().unique()) if not universe.empty else [TODAY]
-    top_expiry = st.selectbox("Expiry", avail_expiries, format_func=lambda x: x.strftime("%d-%b-%Y"), key="top_exp_inp")
-with p5:
-    top_min_figures = st.text_input("Result", value="0", help="Figures / Minimum Profit", key="top_result_inp")
+# ----------------- TOP FILTERS (ROW 1) -----------------
+f1, f2, f3, f4, f5 = st.columns([1, 0.9, 1.1, 1.2, 0.9])
+with f1:
+    st.selectbox("Delta", ["0.20 - 0.25", "0.15 - 0.20"], index=0)
+with f2:
+    st.selectbox("Ratio", ["1 : 3", "1 : 2"], index=0)
+with f3:
+    st.selectbox("Option Type", ["CE (Call)", "PE (Put)"], index=0)
+with f4:
+    st.selectbox("Expiry", ["26 Sep 2026", "06 Oct 2026"], index=0)
+with f5:
+    st.text_input("Result", value="0")
+    st.markdown("<div class='sub-caption' style='text-align:center;'>Figures</div>", unsafe_allow_html=True)
 
-st.caption("**Spread Cost (₹)**")
-c1, c2 = st.columns(2)
-with c1:
-    top_debit = st.text_input("Debit", value="0", placeholder="e.g. 500", key="top_debit_inp")
-with c2:
-    top_credit = st.text_input("Credit", value="0", placeholder="e.g. 500", key="top_credit_inp")
+# ----------------- SPREAD COST (ROW 2) -----------------
+st.markdown("<div class='filter-label'>Spread Cost (₹)</div>", unsafe_allow_html=True)
+sc1, sc2, empty_space = st.columns([1.5, 1.5, 3])
+with sc1:
+    debit_col1, debit_col2 = st.columns([1, 2])
+    with debit_col1:
+        st.markdown("<div class='cost-badge-debit'>Debit</div>", unsafe_allow_html=True)
+    with debit_col2:
+        st.text_input("DebitVal", value="0 - 5000", label_visibility="collapsed")
+with sc2:
+    credit_col1, credit_col2 = st.columns([1, 2])
+    with credit_col1:
+        st.markdown("<div class='cost-badge-credit'>Credit</div>", unsafe_allow_html=True)
+    with credit_col2:
+        st.text_input("CreditVal", value="0 - 5000", label_visibility="collapsed")
 
-# =========================================================
-# SESSION STATE INITIALIZATION
-# =========================================================
-if "auto_scan_active" not in st.session_state:
-    st.session_state.auto_scan_active = False
-if "active_scan_mode" not in st.session_state:
-    st.session_state.active_scan_mode = "NONE"
-if "scan_results_df" not in st.session_state:
-    st.session_state.scan_results_df = pd.DataFrame()
+st.write("")
 
-# =========================================================
-# 1. DEBIT ₹0 SCANNER CARD (GREEN)
-# =========================================================
-st.markdown('<div class="scanner-card-1"><div class="card-header">1. Debit ₹0 Scanner</div>', unsafe_allow_html=True)
-b1, b2, b3 = st.columns([1, 1, 1.2])
-with b1:
-    is_auto_1 = st.session_state.auto_scan_active and st.session_state.active_scan_mode == "DEBIT0"
-    auto_lbl_1 = "⏹ Stop" if is_auto_1 else "Auto"
-    if st.button(auto_lbl_1, key="btn_auto_1", type="primary" if is_auto_1 else "secondary"):
-        st.session_state.auto_scan_active = not is_auto_1
-        st.session_state.active_scan_mode = "DEBIT0" if st.session_state.auto_scan_active else "NONE"
+# ----------------- 3 MODULES -----------------
+st.markdown("<div class='card-mod-1'><div class='mod-title'>1. Debit ₹0 Scanner</div>", unsafe_allow_html=True)
+m1_1, m1_2, m1_3 = st.columns(3)
+with m1_1:
+    if st.button("Auto", key="m1_auto", use_container_width=True):
+        st.session_state.auto_scan = True
         st.rerun()
-with b2:
-    btn_man_1 = st.button("Manual", key="btn_man_1")
-with b3:
-    btn_scan_1 = st.button("Scan", key="btn_scan_1", type="primary")
-st.markdown('</div>', unsafe_allow_html=True)
-
-# =========================================================
-# 2. % GAP SCANNER CARD (PINK)
-# =========================================================
-st.markdown('<div class="scanner-card-2"><div class="card-header">2. % Gap Scanner</div>', unsafe_allow_html=True)
-g1, g2, g3, g4 = st.columns([1.2, 1, 1, 1.2])
-with g1:
-    gap_pct_val = st.text_input("%", value="5", label_visibility="collapsed", key="gap_pct_input")
-with g2:
-    is_auto_2 = st.session_state.auto_scan_active and st.session_state.active_scan_mode == "GAP"
-    auto_lbl_2 = "⏹ Stop" if is_auto_2 else "Auto"
-    if st.button(auto_lbl_2, key="btn_auto_2", type="primary" if is_auto_2 else "secondary"):
-        st.session_state.auto_scan_active = not is_auto_2
-        st.session_state.active_scan_mode = "GAP" if st.session_state.auto_scan_active else "NONE"
+with m1_2:
+    if st.button("Manual", key="m1_man", use_container_width=True):
+        st.session_state.auto_scan = False
         st.rerun()
-with g3:
-    btn_man_2 = st.button("Manual", key="btn_man_2")
-with g4:
-    btn_scan_2 = st.button("Scan", key="btn_scan_2", type="primary")
-st.markdown('</div>', unsafe_allow_html=True)
+with m1_3:
+    st.button("Scan", key="m1_scan", type="primary", use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-# =========================================================
-# 3. OPTION PREMIUM SPIKE CARD (YELLOW)
-# =========================================================
-st.markdown('<div class="scanner-card-3"><div class="card-header">3. Option Premium Spike (UP / DOWN)</div>', unsafe_allow_html=True)
-s1, s2, s3, s4 = st.columns([1.2, 1, 1, 1.2])
-with s1:
-    spike_pct_val = st.text_input("%", value="5", label_visibility="collapsed", key="spike_pct_input")
-with s2:
-    is_auto_3 = st.session_state.auto_scan_active and st.session_state.active_scan_mode == "SPIKE"
-    auto_lbl_3 = "⏹ Stop" if is_auto_3 else "Auto"
-    if st.button(auto_lbl_3, key="btn_auto_3", type="primary" if is_auto_3 else "secondary"):
-        st.session_state.auto_scan_active = not is_auto_3
-        st.session_state.active_scan_mode = "SPIKE" if st.session_state.auto_scan_active else "NONE"
+st.markdown("<div class='card-mod-2'><div class='mod-title'>2. % Gap Scanner</div>", unsafe_allow_html=True)
+m2_1, m2_2, m2_3, m2_4, m2_5 = st.columns([0.8, 0.4, 1.2, 1.2, 1.2])
+with m2_1: st.text_input("gap_val", value="20", label_visibility="collapsed")
+with m2_2: st.markdown("<div style='margin-top:6px; font-weight:bold;'>%</div>", unsafe_allow_html=True)
+with m2_3:
+    if st.button("Auto", key="m2_auto", use_container_width=True):
+        st.session_state.auto_scan = True
         st.rerun()
-with s3:
-    btn_man_3 = st.button("Manual", key="btn_man_3")
-with s4:
-    btn_scan_3 = st.button("Scan", key="btn_scan_3", type="primary")
-st.markdown('</div>', unsafe_allow_html=True)
+with m2_4:
+    if st.button("Manual", key="m2_man", use_container_width=True):
+        st.session_state.auto_scan = False
+        st.rerun()
+with m2_5:
+    st.button("Scan", key="m2_scan", type="primary", use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-# =========================================================
-# PARSERS & RATIO SETUP
-# =========================================================
-RATIO_MAP = {"1:3": (1, 3), "3:10": (3, 10), "1:4": (1, 4), "2:7": (2, 7)}
-buy_qty, sell_qty = RATIO_MAP[top_ratio]
+st.markdown("<div class='card-mod-3'><div class='mod-title'>3. Option Premium Spike (UP / DOWN)</div>", unsafe_allow_html=True)
+m3_1, m3_2, m3_3, m3_4, m3_5 = st.columns([0.8, 0.4, 1.2, 1.2, 1.2])
+with m3_1: st.text_input("spike_val", value="10", label_visibility="collapsed")
+with m3_2: st.markdown("<div style='margin-top:6px; font-weight:bold;'>%</div>", unsafe_allow_html=True)
+with m3_3:
+    if st.button("Auto", key="m3_auto", use_container_width=True):
+        st.session_state.auto_scan = True
+        st.rerun()
+with m3_4:
+    if st.button("Manual", key="m3_man", use_container_width=True):
+        st.session_state.auto_scan = False
+        st.rerun()
+with m3_5:
+    st.button("Scan", key="m3_scan", type="primary", use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-def parse_delta_filter(text):
-    text = str(text).strip()
-    if "-" in text:
-        parts = text.split("-")
-        return float(parts[0]), float(parts[1])
-    val = float(text)
-    return (0.0, val)
+# ----------------- SCAN RESULTS (EXCEL SHEET STYLE) -----------------
+r1, r2, r3 = st.columns([2, 1.2, 1.3])
+with r1:
+    st.markdown("<h4 style='margin:0;'>🎯 Scan Results (Live)</h4>", unsafe_allow_html=True)
+with r2:
+    st.markdown("<p style='text-align:right; font-size:0.85rem; margin:4px 0 0 0;'>Total Results: <b>24</b></p>", unsafe_allow_html=True)
+with r3:
+    st.text_input("Search", placeholder="🔍 Search...", label_visibility="collapsed")
 
-delta_min, delta_max = 0.0, 100.0
-try:
-    delta_min, delta_max = parse_delta_filter(top_delta)
-except Exception:
-    pass
+# Excel Grid Table HTML
+excel_html = """
+<div class="excel-container">
+<table class="excel-table">
+    <thead>
+        <tr class="col-letter-header">
+            <th class="row-num"></th>
+            <th>A</th>
+            <th>B</th>
+            <th>C</th>
+            <th>D</th>
+            <th>E</th>
+            <th>F</th>
+            <th>G</th>
+            <th>H</th>
+            <th>I</th>
+            <th>J</th>
+            <th>K</th>
+        </tr>
+        <tr>
+            <th class="row-num">#</th>
+            <th>#</th>
+            <th>Company - delta value</th>
+            <th>strike buy/sale</th>
+            <th>price/ price</th>
+            <th>R1 buystrike / sale</th>
+            <th>R1 (price/ price)</th>
+            <th>R1 (profit)</th>
+            <th>R2 buystrike / sale</th>
+            <th>R2 (price/ price)</th>
+            <th>R2 (profit)</th>
+            <th>Resu date</th>
+        </tr>
+    </thead>
+    <tbody>
+"""
 
-# =========================================================
-# SCANNER LOGIC WORKER
-# =========================================================
-def scan_single_stock(item):
-    symbol = str(item["symbol"])
-    underlying_key = item["underlying_key"]
-    lot_size = int(item["lot_size"])
-    if lot_size <= 0:
-        return []
+for row_idx in range(1, 15):
+    excel_html += f"""
+        <tr>
+            <td class="row-num">{row_idx}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    """
 
-    chain = get_option_chain(underlying_key, top_expiry, access_token)
-    if not chain:
-        return []
+excel_html += """
+    </tbody>
+</table>
+</div>
+"""
 
-    options = extract_options(chain, top_side)
-    if len(options) < 4:
-        return []
+st.markdown(excel_html, unsafe_allow_html=True)
 
-    results = []
-    for b in options:
-        b_strike = b["strike"]
-        b_ltp = b["ltp"]
-        b_delta = abs(b["delta"]) * 100
-
-        if not (delta_min <= b_delta <= delta_max):
-            continue
-
-        # Target sells
-        sells = [x for x in options if x["strike"] > b_strike] if top_side == "CE" else [x for x in options if x["strike"] < b_strike]
-        for c in sells:
-            gap = abs(c["strike"] - b_strike)
-            net_points = (sell_qty * c["ltp"]) - (buy_qty * b_ltp)
-            total_amount = net_points * lot_size
-
-            # Debit ₹0 condition: Net profit >= 0
-            if total_amount < 0:
-                continue
-
-            # Supporting Spread R1 (Base)
-            a_strike = b_strike - gap if top_side == "CE" else b_strike + gap
-            a_opt = next((x for x in options if abs(x["strike"] - a_strike) < 0.01), None)
-            
-            r1_buy_strike = a_strike if a_opt else 0
-            r1_sell_strike = b_strike
-            r1_profit = ((sell_qty * b_ltp) - (buy_qty * (a_opt["ltp"] if a_opt else 0))) * lot_size
-
-            # Supporting Spread R2 (Previous)
-            p_strike = a_strike - gap if top_side == "CE" else a_strike + gap
-            p_opt = next((x for x in options if abs(x["strike"] - p_strike) < 0.01), None)
-            r2_buy_strike = p_strike if p_opt else 0
-            r2_profit = ((sell_qty * (a_opt["ltp"] if a_opt else 0)) - (buy_qty * (p_opt["ltp"] if p_opt else 0))) * lot_size
-
-            results.append({
-                "symbol": symbol,
-                "delta": b_delta,
-                "buy_strike": b_strike,
-                "sell_strike": c["strike"],
-                "buy_ltp": b_ltp,
-                "sell_ltp": c["ltp"],
-                "profit": total_amount,
-                "r1_buy": r1_buy_strike,
-                "r1_sell": r1_sell_strike,
-                "r1_buy_ltp": a_opt["ltp"] if a_opt else 0.0,
-                "r1_sell_ltp": b_ltp,
-                "r1_profit": r1_profit,
-                "r2_buy": r2_buy_strike,
-                "r2_sell": a_strike,
-                "r2_buy_ltp": p_opt["ltp"] if p_opt else 0.0,
-                "r2_sell_ltp": a_opt["ltp"] if a_opt else 0.0,
-                "r2_profit": r2_profit,
-            })
-            break
-    return results
-
-# =========================================================
-# TRIGGER SCANNING RUN
-# =========================================================
-should_run = (
-    btn_scan_1 or btn_man_1 or 
-    btn_scan_2 or btn_man_2 or 
-    btn_scan_3 or btn_man_3 or 
-    st.session_state.auto_scan_active
-)
-
-if should_run:
-    if not access_token:
-        st.error("કૃપા કરીને Upstox Access Token દાખલ કરો.")
-    else:
-        scan_univ = universe[universe["expiry"] == top_expiry].drop_duplicates(subset=["underlying_key"]).reset_index(drop=True)
-        raw_list = []
-        with st.spinner("સ્કેનિંગ ચાલુ છે..."):
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = {executor.submit(scan_single_stock, row): row["symbol"] for _, row in scan_univ.iterrows()}
-                for f in as_completed(futures):
-                    try:
-                        res = f.result()
-                        if res:
-                            raw_list.extend(res)
-                    except Exception:
-                        pass
-
-        # Sort: Highest Profit/Credit first
-        raw_list.sort(key=lambda x: x["profit"], reverse=True)
-
-        # Build clean Excel table
-        final_rows = []
-        for i, r in enumerate(raw_list, 1):
-            ban_tag = " [BAN]" if r["symbol"] in BAN_SYMBOLS else ""
-            res_date = RESULT_DATES.get(r["symbol"], "-")
-
-            final_rows.append({
-                "#": i,
-                "Company - delta value": f"{r['symbol']}{ban_tag} ({r['delta']:.1f})",
-                "strike buy/sale": f"{r['buy_strike']:g} / {r['sell_strike']:g}",
-                "price/price": f"{r['buy_ltp']:.2f} / {r['sell_ltp']:.2f}",
-                "R1 buystrike/sale": f"{r['r1_buy']:g} / {r['r1_sell']:g}" if r['r1_buy'] > 0 else "-",
-                "R1 (price/price)": f"{r['r1_buy_ltp']:.2f} / {r['r1_sell_ltp']:.2f}" if r['r1_buy'] > 0 else "-",
-                "R1 (profit)": f"₹{r['r1_profit']:,.0f}" if r['r1_buy'] > 0 else "-",
-                "R2 buystrike/sale": f"{r['r2_buy']:g} / {r['r2_sell']:g}" if r['r2_buy'] > 0 else "-",
-                "R2 (price/price)": f"{r['r2_buy_ltp']:.2f} / {r['r2_sell_ltp']:.2f}" if r['r2_buy'] > 0 else "-",
-                "R2 (profit)": f"₹{r['r2_profit']:,.0f}" if r['r2_buy'] > 0 else "-",
-                "Result date": res_date
-            })
-        st.session_state.scan_results_df = pd.DataFrame(final_rows)
-
-# =========================================================
-# SCAN RESULTS LIVE (EXCEL TABLE VIEW)
-# =========================================================
-st.markdown("---")
-r_col1, r_col2 = st.columns([5.5, 4.5])
-with r_col1:
-    st.markdown("### 🎯 Scan Results (Live)")
-with r_col2:
-    search_txt = st.text_input("Search", placeholder="Search symbol...", label_visibility="collapsed", key="search_query_box")
-
-disp_df = st.session_state.scan_results_df
-
-if not disp_df.empty:
-    if search_txt.strip():
-        disp_df = disp_df[disp_df["Company - delta value"].str.contains(search_txt.strip(), case=False, na=False)]
-    
-    st.caption(f"**Total Results:** {len(disp_df)}")
-    st.dataframe(disp_df, use_container_width=True, hide_index=True)
-else:
-    empty_cols = [
-        "#", "Company - delta value", "strike buy/sale", "price/price",
-        "R1 buystrike/sale", "R1 (price/price)", "R1 (profit)",
-        "R2 buystrike/sale", "R2 (price/price)", "R2 (profit)", "Result date"
-    ]
-    st.caption("**Total Results:** 0")
-    st.dataframe(pd.DataFrame(columns=empty_cols), use_container_width=True, hide_index=True)
-
-# Auto Scan loop handling (Refreshes automatically)
-if st.session_state.auto_scan_active:
-    st.info(f"🔄 **Auto Scan ચાલુ છે ({st.session_state.active_scan_mode})** — દર 45 સેકન્ડે ડેટા લાઈવ રીફ્રેશ થશે.")
-    time_lib.sleep(45)
+if st.session_state.auto_scan:
+    time.sleep(5)
     st.rerun()
