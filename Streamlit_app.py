@@ -188,52 +188,52 @@ def parse_delta_range(text):
         low, high = float(a), float(b)[span_33](start_span)[span_33](end_span)
         if high <= 1.0:
             low *= 100[span_34](start_span)[span_34](end_span)
-            high *= 100[span_35](start_span)[span_35](end_span)
-        return min(low, high), max(low, high)[span_36](start_span)[span_36](end_span)
-    val = float(text)[span_37](start_span)[span_37](end_span)
+ high *= 100
+    return min(low, high), max(low, high)
+    val = float(text)
     if val <= 1.0:
-        val *= 100[span_38](start_span)[span_38](end_span)
-    return 0.0, val[span_39](start_span)[span_39](end_span)
+        val *= 100
+    return 0.0, val
 
 def parse_amount_range(text):
-    text = str(text).strip().replace(",", "")[span_40](start_span)[span_40](end_span)
+    text = str(text).strip().replace(",", "")
     if "-" in text:
-        a, b = text.split("-")[span_41](start_span)[span_41](end_span)
-        return float(a), float(b)[span_42](start_span)[span_42](end_span)
-    val = float(text) if text else 5000.0[span_43](start_span)[span_43](end_span)
-    return 0.0, val[span_44](start_span)[span_44](end_span)
+        a, b = text.split("-")
+        return float(a), float(b)
+    val = float(text) if text else 5000.0
+    return 0.0, val
 
 def get_option_chain(underlying_key, exp_date, token):
-    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}[span_45](start_span)[span_45](end_span)
-    params = {"instrument_key": underlying_key, "expiry_date": exp_date.isoformat()}[span_46](start_span)[span_46](end_span)
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
+    params = {"instrument_key": underlying_key, "expiry_date": exp_date.isoformat()}
     try:
-        r = requests.get(OPTION_CHAIN_URL, params=params, headers=headers, timeout=12)[span_47](start_span)[span_47](end_span)
+        r = requests.get(OPTION_CHAIN_URL, params=params, headers=headers, timeout=12)
         if r.status_code == 200:
-            return r.json().get("data", [])[span_48](start_span)[span_48](end_span)
+            return r.json().get("data", [])
     except Exception:
         pass
-    return [][span_49](start_span)[span_49](end_span)
+    return []
 
 def extract_side_options(chain, opt_type):
-    key = "call_options" if opt_type == "CE" else "put_options[span_50](start_span)"[span_50](end_span)
+    key = "call_options" if opt_type == "CE" else "put_options"
     items = []
     spot_price = 0.0
     for row in chain:
         try:
-            spot = float(row.get("underlying_spot_price", 0) or 0)[span_51](start_span)[span_51](end_span)
+            spot = float(row.get("underlying_spot_price", 0) or 0)
             if spot > 0 and spot_price == 0:
-                spot_price = spot[span_52](start_span)[span_52](end_span)
-            strike = float(row.get("strike_price", 0) or 0)[span_53](start_span)[span_53](end_span)
-            opt = row.get(key, {}) or {}[span_54](start_span)[span_54](end_span)
-            mdata = opt.get("market_data", {}) or {}[span_55](start_span)[span_55](end_span)
-            greeks = opt.get("option_greeks", {}) or {}[span_56](start_span)[span_56](end_span)
-            ltp = float(mdata.get("ltp", 0) or 0)[span_57](start_span)[span_57](end_span)
-            delta = abs(float(greeks.get("delta", 0) or 0)) * 100[span_58](start_span)[span_58](end_span)
-            if strike > 0 and ltp > 0:[span_59](start_span)[span_59](end_span)
-                items.append({"strike": strike, "ltp": ltp, "delta": delta})[span_60](start_span)[span_60](end_span)
+                spot_price = spot
+            strike = float(row.get("strike_price", 0) or 0)
+            opt = row.get(key, {}) or {}
+            mdata = opt.get("market_data", {}) or {}
+            greeks = opt.get("option_greeks", {}) or {}
+            ltp = float(mdata.get("ltp", 0) or 0)
+            delta = abs(float(greeks.get("delta", 0) or 0)) * 100
+            if strike > 0 and ltp > 0:
+                items.append({"strike": strike, "ltp": ltp, "delta": delta})
         except Exception:
             continue
-    items.sort(key=lambda x: x["strike"])[span_61](start_span)[span_61](end_span)
+    items.sort(key=lambda x: x["strike"])
     return items, spot_price
 
 # =========================================================
