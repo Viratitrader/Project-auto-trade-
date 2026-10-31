@@ -20,137 +20,155 @@ st.set_page_config(
 )
 
 # =========================================================
-# MOBILE RESPONSIVE CSS
+# COMPACT MOBILE CSS
 # =========================================================
 
 st.markdown("""
 <style>
-    * {
-        box-sizing: border-box !important;
-    }
+* {
+    box-sizing: border-box !important;
+}
+
+html, body,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+.main,
+.block-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    padding: 3px 5px !important;
+    margin: 0 !important;
+}
+
+#MainMenu, header, footer {
+    display: none !important;
+}
+
+div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    margin-bottom: 3px !important;
+    width: 100% !important;
+}
+
+div[data-testid="column"] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+}
+
+.stTextInput input,
+.stSelectbox select,
+.stNumberInput input {
+    font-size: 0.68rem !important;
+    padding: 2px 4px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    font-weight: 600 !important;
+    max-width: 100% !important;
+}
+
+label[data-testid="stWidgetLabel"] p {
+    font-size: 0.60rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 1px !important;
+    color: #1e293b !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.stButton button {
+    padding: 0 2px !important;
+    height: 28px !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    border-radius: 4px !important;
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+    width: 100% !important;
+}
+
+div[data-testid="stToggle"] {
+    margin-top: 3px !important;
+}
+
+.streamlit-expanderHeader {
+    font-size: 0.62rem !important;
+    padding: 2px 6px !important;
+}
+
+/* MOBILE */
+
+@media screen and (max-width: 700px) {
 
     html, body,
     [data-testid="stAppViewContainer"],
     [data-testid="stMain"],
-    .main,
+    .main {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
     .block-container {
         width: 100% !important;
         max-width: 100% !important;
-        overflow-x: hidden !important;
-        padding: 4px 5px !important;
+        padding: 2px 4px !important;
         margin: 0 !important;
-    }
-
-    #MainMenu, header, footer {
-        display: none !important;
     }
 
     div[data-testid="stHorizontalBlock"] {
         display: flex !important;
-        flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 4px !important;
-        margin-bottom: 3px !important;
+        gap: 3px !important;
         width: 100% !important;
-        max-width: 100% !important;
+        margin-bottom: 2px !important;
     }
 
     div[data-testid="column"] {
         flex: 1 1 0 !important;
+        width: 0 !important;
         min-width: 0 !important;
         max-width: 100% !important;
         padding: 0 !important;
     }
 
     .stTextInput input,
-    .stSelectbox select,
     .stNumberInput input {
-        font-size: 0.65rem !important;
-        padding: 2px 4px !important;
-        height: 28px !important;
-        min-height: 28px !important;
-        font-weight: 600 !important;
-        max-width: 100% !important;
+        font-size: 0.60rem !important;
+        height: 25px !important;
+        min-height: 25px !important;
+        padding: 1px 3px !important;
     }
 
     label[data-testid="stWidgetLabel"] p {
-        font-size: 0.60rem !important;
-        font-weight: 700 !important;
-        margin-bottom: 1px !important;
-        color: #1e293b !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
+        font-size: 0.54rem !important;
+        margin-bottom: 0 !important;
     }
 
     .stButton button {
-        padding: 0 2px !important;
-        height: 28px !important;
-        font-size: 0.65rem !important;
-        font-weight: 700 !important;
-        border-radius: 4px !important;
-        background-color: #ef4444 !important;
-        color: #ffffff !important;
-        border: none !important;
-        width: 100% !important;
+        height: 25px !important;
+        min-height: 25px !important;
+        font-size: 0.58rem !important;
+        padding: 0 1px !important;
     }
 
     div[data-testid="stToggle"] {
-        margin-top: 4px !important;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
     }
 
-    .streamlit-expanderHeader {
-        font-size: 0.62rem !important;
-        font-weight: 700 !important;
-        padding: 2px 6px !important;
+    iframe {
+        width: 100% !important;
+        max-width: 100% !important;
+        border: 0 !important;
     }
-
-    /* MOBILE SCREEN WIDTH FIX */
-
-    @media screen and (max-width: 700px) {
-
-        html, body,
-        [data-testid="stAppViewContainer"],
-        [data-testid="stMain"],
-        .main {
-            width: 100vw !important;
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-        }
-
-        .block-container {
-            width: 100% !important;
-            max-width: 100% !important;
-            padding-left: 5px !important;
-            padding-right: 5px !important;
-            margin: 0 !important;
-        }
-
-        div[data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-wrap: wrap !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            gap: 5px !important;
-        }
-
-        div[data-testid="column"] {
-            flex: 1 1 48% !important;
-            width: 48% !important;
-            min-width: 0 !important;
-            max-width: 100% !important;
-        }
-
-        iframe {
-            width: 100% !important;
-            max-width: 100% !important;
-            border: 0 !important;
-        }
-
-        input, select, button {
-            max-width: 100% !important;
-        }
-    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1115,65 +1133,42 @@ if should_scan:
 
 
 # =========================================================
-# RESULT TABLE
+# COMPACT RESULT TABLE
 # =========================================================
 
 results = st.session_state.scan_results
 
 table_rows_html = ""
 
-for i in range(max(10, len(results))):
+for r in results:
 
-    if i < len(results):
+    date_badge = (
+        f"<span class='comp-date'>"
+        f"📅{r['res_date']} {r['delta_display']}"
+        f"</span>"
+        if r["res_date"]
+        else
+        f"<span class='comp-date'>"
+        f"{r['delta_display']}"
+        f"</span>"
+    )
 
-        r = results[i]
+    table_rows_html += f"""
+    <tr>
+        <td class="c-comp">
+            <div class="comp-name">{r['symbol']}</div>
+            {date_badge}
+        </td>
+        <td class="c-col">{r['strk_bs']}</td>
+        <td class="c-col">{r['pp']}</td>
+        <td class="c-col highlight-dc">{r['dc']}</td>
+        <td class="c-col">{r['r1_bs']}</td>
+        <td class="c-col">{r['r1_pp']}</td>
+        <td class="c-col">{r['r2_bs']}</td>
+        <td class="c-col">{r['r2_pp']}</td>
+    </tr>
+    """
 
-        date_badge = (
-            f"<span class='comp-date'>"
-            f"📅{r['res_date']} {r['delta_display']}"
-            f"</span>"
-            if r["res_date"]
-            else
-            f"<span class='comp-date'>"
-            f"{r['delta_display']}"
-            f"</span>"
-        )
-
-        table_rows_html += f"""
-        <tr>
-            <td class="c-comp">
-                <div class="comp-name">{r['symbol']}</div>
-                {date_badge}
-            </td>
-            <td class="c-col">{r['strk_bs']}</td>
-            <td class="c-col">{r['pp']}</td>
-            <td class="c-col highlight-dc">{r['dc']}</td>
-            <td class="c-col">{r['r1_bs']}</td>
-            <td class="c-col">{r['r1_pp']}</td>
-            <td class="c-col">{r['r2_bs']}</td>
-            <td class="c-col">{r['r2_pp']}</td>
-        </tr>
-        """
-
-    else:
-
-        table_rows_html += """
-        <tr>
-            <td class="c-comp"></td>
-            <td class="c-col"></td>
-            <td class="c-col"></td>
-            <td class="c-col"></td>
-            <td class="c-col"></td>
-            <td class="c-col"></td>
-            <td class="c-col"></td>
-            <td class="c-col"></td>
-        </tr>
-        """
-
-
-# =========================================================
-# HTML RESULT TABLE
-# =========================================================
 
 full_html = f"""
 <!DOCTYPE html>
@@ -1206,21 +1201,30 @@ html, body {{
     background: transparent;
 }}
 
+.result-heading {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 2px 0 3px 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+}}
+
 .excel-container {{
     width: 100%;
     max-width: 100%;
     border: 1px solid #94a3b8;
     background: #ffffff;
     border-radius: 4px;
-    overflow: hidden;
-    margin-top: 2px;
+    overflow: auto;
+    max-height: 235px;
 }}
 
 .excel-grid {{
     width: 100%;
     max-width: 100%;
     border-collapse: collapse;
-    font-size: 0.58rem;
+    font-size: 0.55rem;
     table-layout: fixed;
 }}
 
@@ -1238,11 +1242,14 @@ html, body {{
     background-color: #e2e8f0;
     color: #0f172a;
     font-weight: 700;
-    font-size: 0.56rem;
+    font-size: 0.52rem;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }}
 
 .excel-grid td {{
-    height: 26px;
+    height: 25px;
 }}
 
 .c-comp {{
@@ -1258,12 +1265,12 @@ html, body {{
 .comp-name {{
     font-weight: 700;
     color: #0f172a;
-    font-size: 0.60rem;
+    font-size: 0.57rem;
     line-height: 1.1;
 }}
 
 .comp-date {{
-    font-size: 0.48rem;
+    font-size: 0.46rem;
     color: #0284c7;
     font-weight: 600;
     display: block;
@@ -1274,26 +1281,52 @@ html, body {{
     color: #047857;
 }}
 
+.empty-message {{
+    padding: 12px 4px;
+    text-align: center;
+    font-size: 0.65rem;
+    color: #64748b;
+}}
+
+@media screen and (max-width: 700px) {{
+
+    .excel-grid {{
+        font-size: 0.49rem;
+    }}
+
+    .excel-grid th {{
+        font-size: 0.46rem;
+        padding: 3px 0;
+    }}
+
+    .excel-grid td {{
+        padding: 2px 0;
+        height: 23px;
+    }}
+
+    .comp-name {{
+        font-size: 0.51rem;
+    }}
+
+    .comp-date {{
+        font-size: 0.42rem;
+    }}
+
+    .excel-container {{
+        max-height: 235px;
+    }}
+}}
+
 </style>
 </head>
 
 <body>
 
-<div style='display:flex;
-justify-content:space-between;
-align-items:center;
-margin-top:2px;
-font-size:0.68rem;
-font-weight:700;'>
-
+<div class="result-heading">
     <span>🎯 Scan Results (Live)</span>
-
-    <span style='font-size:0.62rem;
-    font-weight:normal;
-    color:#475569;'>
+    <span style="font-size:0.60rem;font-weight:normal;color:#475569;">
         Total: <b>{len(results)}</b>
     </span>
-
 </div>
 
 <div class="excel-container">
@@ -1302,7 +1335,7 @@ font-weight:700;'>
 
 <thead>
 <tr>
-    <th class="c-comp">Company (Date)</th>
+    <th class="c-comp">Company</th>
     <th class="c-col">Strk B/S</th>
     <th class="c-col">P/P</th>
     <th class="c-col">D/C</th>
@@ -1314,7 +1347,13 @@ font-weight:700;'>
 </thead>
 
 <tbody>
-{table_rows_html}
+{table_rows_html if table_rows_html else '''
+<tr>
+<td colspan="8" class="empty-message">
+Scan કર્યા પછી પરિણામ અહીં દેખાશે
+</td>
+</tr>
+'''}
 </tbody>
 
 </table>
@@ -1326,6 +1365,6 @@ font-weight:700;'>
 
 components.html(
     full_html,
-    height=440,
+    height=265,
     scrolling=False
 )
