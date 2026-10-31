@@ -25,15 +25,93 @@ TODAY = date.today()
 
 st.markdown("""
 <style>
-*{box-sizing:border-box!important}
-html,body,[data-testid="stAppViewContainer"],[data-testid="stMain"],.main,.block-container{width:100%!important;max-width:100%!important;overflow-x:hidden!important;padding:3px 5px!important;margin:0!important}
-#MainMenu,header,footer{display:none!important}
-div[data-testid="stHorizontalBlock"]{display:flex!important;flex-wrap:nowrap!important;gap:4px!important;margin-bottom:3px!important;width:100%!important}
-div[data-testid="column"]{flex:1 1 0!important;min-width:0!important;max-width:100%!important;padding:0!important}
-.stTextInput input,.stSelectbox select,.stNumberInput input{font-size:.68rem!important;padding:2px 4px!important;height:28px!important;min-height:28px!important;font-weight:600!important;max-width:100%!important}
-label[data-testid="stWidgetLabel"] p{font-size:.60rem!important;font-weight:700!important;margin-bottom:1px!important;color:#1e293b!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.stButton button{padding:0 2px!important;height:28px!important;font-size:.65rem!important;font-weight:700!important;border-radius:4px!important;background:#ef4444!important;color:white!important;border:0!important;width:100%!important}
-@media(max-width:700px){.block-container{padding:2px 4px!important}div[data-testid="stHorizontalBlock"]{gap:3px!important;margin-bottom:2px!important}div[data-testid="column"]{width:0!important;min-width:0!important}.stTextInput input,.stNumberInput input{font-size:.60rem!important;height:25px!important;min-height:25px!important;padding:1px 3px!important}label[data-testid="stWidgetLabel"] p{font-size:.54rem!important}.stButton button{height:25px!important;min-height:25px!important;font-size:.58rem!important;padding:0 1px!important}}
+* { box-sizing: border-box !important; }
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"],
+.main, .block-container {
+    width: 100% !important; max-width: 100% !important;
+    overflow-x: hidden !important; margin: 0 !important;
+}
+.block-container { padding: 5px 8px !important; }
+#MainMenu, header, footer { display: none !important; }
+
+/* Desktop: preserve the existing horizontal rows */
+div[data-testid="stHorizontalBlock"] {
+    display: flex !important; flex-wrap: nowrap !important;
+    gap: 6px !important; width: 100% !important;
+    margin-bottom: 5px !important;
+}
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    flex: 1 1 0% !important; width: 0 !important;
+    min-width: 0 !important; max-width: 100% !important;
+    padding: 0 2px !important;
+}
+
+/* Inputs must stay inside their own column */
+div[data-testid="stTextInput"],
+div[data-testid="stSelectbox"],
+div[data-testid="stNumberInput"] {
+    width: 100% !important; min-width: 0 !important;
+}
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input,
+div[data-testid="stSelectbox"] [data-baseweb="select"] {
+    width: 100% !important; min-width: 0 !important;
+    max-width: 100% !important; min-height: 32px !important;
+    font-size: 13px !important; font-weight: 600 !important;
+}
+label[data-testid="stWidgetLabel"] p {
+    font-size: 12px !important; font-weight: 700 !important;
+    white-space: normal !important; overflow: visible !important;
+    margin-bottom: 2px !important;
+}
+.stButton button {
+    width: 100% !important; min-width: 0 !important;
+    min-height: 32px !important; padding: 2px 4px !important;
+    font-size: 12px !important; font-weight: 700 !important;
+    border-radius: 5px !important; background: #ef4444 !important;
+    color: #fff !important; border: 0 !important;
+}
+
+/* Mobile: three-column filter rows and two-column cost/scanner rows */
+@media screen and (max-width: 700px) {
+    .block-container { padding: 4px 5px !important; }
+    div[data-testid="stHorizontalBlock"] {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 5px !important; width: 100% !important;
+        margin-bottom: 7px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(2)):not(:has(> div[data-testid="column"]:nth-child(3))) {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        width: 100% !important; min-width: 0 !important;
+        max-width: 100% !important; flex: none !important;
+        padding: 0 !important;
+    }
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stSelectbox"] [data-baseweb="select"] {
+        width: 100% !important; min-width: 0 !important;
+        max-width: 100% !important; min-height: 34px !important;
+        font-size: 12px !important; padding-left: 5px !important;
+        padding-right: 5px !important;
+    }
+    label[data-testid="stWidgetLabel"] p {
+        font-size: 11px !important; line-height: 1.15 !important;
+        white-space: normal !important; overflow: visible !important;
+    }
+    .stButton button {
+        width: 100% !important; min-width: 0 !important;
+        min-height: 33px !important; font-size: 11px !important;
+        padding: 2px !important; white-space: normal !important;
+    }
+    div[data-testid="stToggle"] {
+        width: 100% !important; min-width: 0 !important;
+        margin-top: 3px !important;
+    }
+    iframe { width: 100% !important; max-width: 100% !important; border: 0 !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
