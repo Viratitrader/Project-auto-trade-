@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import requests
 import gzip
@@ -115,22 +116,21 @@ st.title("NSE F&O 1:3 Call Ratio Spread Scanner")
 
 # =========================================================
 # UPSTOX ACCESS TOKEN
-# LOAD FROM STREAMLIT SECRETS
+# Prefer Render Environment Variable; fall back to Streamlit Secrets
 # =========================================================
 
-secret_token = st.secrets.get(
-    "UPSTOX_ACCESS_TOKEN",
-    ""
-)
+access_token = os.getenv("UPSTOX_ACCESS_TOKEN", "").strip()
 
-if secret_token:
+if not access_token:
+    try:
+        access_token = str(
+            st.secrets.get("UPSTOX_ACCESS_TOKEN", "")
+        ).strip()
+    except Exception:
+        # Streamlit raises StreamlitSecretNotFoundError when no secrets.toml exists.
+        access_token = ""
 
-    access_token = str(
-        secret_token
-    ).strip()
-
-else:
-
+if not access_token:
     if "upstox_access_token" not in st.session_state:
         st.session_state.upstox_access_token = ""
 
@@ -142,9 +142,7 @@ else:
     )
 
     if token_input.strip():
-        st.session_state.upstox_access_token = (
-            token_input.strip()
-        )
+        st.session_state.upstox_access_token = token_input.strip()
 
     access_token = st.session_state.get(
         "upstox_access_token",
